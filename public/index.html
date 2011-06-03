@@ -1,0 +1,155 @@
+<html>
+<body>
+
+<div id="target">no output</div>
+
+
+<script type="text/html" id="template-schema-FileList">
+<ul>
+    <% _.each(data.files, function(file) { %>
+    <li><%=file%></li>
+    <% }); %>
+</ul>
+</script>
+
+
+<script src="jquery-1.6.1.js"></script>
+<script src="underscore.js"></script>
+<script src="parser.js"></script>
+<script src="jsonselect.js"></script>
+<script>
+
+var $t = $('#target');
+
+var schema_templates = {};
+$('script[id^=template-schema-]').each(function(idx, template) { 
+    schema_templates[template.id.replace('template-schema-', '')] = _.template($(template).text());
+});
+
+$.ajaxSetup({
+    dataType: 'json'
+});
+
+var context = {
+    command: function(cmd, args) { 
+        return $.ajax('/context/'+this.id+'/command', {
+            type: 'POST',
+            data: JSON.stringify({cmd: cmd, args: args}),
+            processData: false,
+            contentType: 'application/json'
+        }).success(function(ret) { 
+            console.log(ret);
+        });
+    },
+    filelist: function(pattern) { 
+        return this.command('filelist', [pattern]);
+    }
+};
+
+var C = function() { 
+    return context.filelist.apply(context, arguments);
+};
+C.__proto__ = context;
+
+function render(ret) { 
+    $t.html( schema_templates[ret.schema](ret) );
+}
+
+function tojson_replacer(key, value) { 
+    if( key[0] == '_' ) { return undefined; }
+    if( value.toJSON ) { return value.toJSON(); }
+    return value;
+}
+
+function tojson(obj) { 
+    if( obj.toJSON ) { return JSON.stringify(obj.toJSON(), tojson_replacer); }
+    return JSON.stringify(obj, tojson_replacer);
+}
+
+var got_context = $.ajax('/context', {
+    type: 'POST',
+}).success(function(data) { 
+    context.id = data.id;
+    context.path = data.path;
+    console.log(context.id, context.path);
+});
+
+function Call(cmd, args, opts) { 
+    this.id = null;
+    this.cmd = cmd;
+    this.args = args;
+    this.opts = opts;   
+    this.input = null;
+}
+Call.prototype.set_input = function(input_call) { 
+    console.assert( input_call.id !== null );
+    this.input = input_call.id;
+};
+
+function CallChain() { 
+    this._idc = 0;
+    this.debug = false;
+    this.calls = {};
+}
+CallChain.prototype.add = function(cmd, args, opts) { 
+    var call = new Call(cmd, args, opts);
+    call.id = this._idc ++;
+    this.calls[call.id] = call;
+    return call;
+};
+CallChain.prototype.execute = function() { 
+    return $.ajax('/context/'+context.id+'/chain', {
+        type: 'POST',
+        data: JSON.stringify(this),
+        processData: false,
+        contentType: 'application/json'
+    }).success(function(data) { 
+        console.log('callchain execute received', data);
+        window.$0 = data;
+    });
+};
+
+got_context.then(function() { 
+    /*
+    var c = new CallChain();
+    c.debug = true;
+    var c1 = c.add('test', ['a']);
+    var c2 = c.add('test', ['b']);
+    var s = c.add('select', ['.args']);
+    c2.set_input(c1);
+    s.set_input(c2);
+    c.execute();
+    */
+    parse("filelist *.js | select .files:contains(shell)").execute();
+});
+
+function parse(s) { 
+    var commands = commands_split( quote_split(s) );
+    console.log(commands);
+
+    var cc = new CallChain();
+    cc.debug = true;
+
+    _.each(commands, function(command) { 
+        var cmd = command.shift();
+        var input = null;
+        if( cmd == '|' ) { 
+            input = cc.calls[cc._idc -1];
+            cmd = command.shift();
+        }
+        var args = command;
+        var c = cc.add(cmd, args, {});
+        if( input !== null ) { 
+            c.set_input(input);
+        }
+    });
+
+    console.dir(cc.calls);
+    return cc;
+}
+
+
+</script>
+
+</body>
+</html>
