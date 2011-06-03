@@ -5,6 +5,11 @@ var express = require('express'),
 
 require('express-resource');
 
+var commands = {
+    ls: require('./commands/ls').ls,
+    select: require('./commands/select').select
+};
+
 var app = express.createServer();
 app.use(express.static(__dirname + '/public'));
 app.use(express.bodyParser());
@@ -44,13 +49,7 @@ context_res.add(app.resource('command', {
         });
     }
 }));
-/*
- * 1 filelist
- * 2 jgrep
- *
- * 1.call()
- * 2.call() <- wait on 1
- */
+
 context_res.add(app.resource('chain', {
     create: function(req, res) { 
         console.log(req.body);
@@ -63,18 +62,30 @@ context_res.add(app.resource('chain', {
             if( call.input !== null ) { call.input = calls[call.input]; }
             call._call = function() { 
                 console.log('executing call', call.id);
-                var cmd = context[call.cmd];
-                cmd.call(context, call.args, call.options, call.input ? call.input.retval : null).then(function(ret) { 
-                    console.log('finished cmd', call.cmd, call.args, ret);
-                    call.retval = ret;
-                    call.ret.resolve(ret);
-                });
+                var cmd = commands[call.cmd];
+                context.execute(cmd, call.args, call.options, call.input ? call.input.retval : null)
+                    .done(function(ret) { 
+                        console.log('finished cmd', call.cmd, call.args, ret);
+                        call.retval = ret;
+                        call.ret.resolve(ret);
+                    })
+                    .fail(function(ret) { 
+                        console.log('failed cmd', call.cmd, call.args, ret);
+                        call.retval = {schema: 'error', data: ret};
+                        call.ret.resolve(ret);
+                    })
+                ;
             };
             call.call = function() { 
                 if( call.input ) { 
                     console.log('call', call.id, 'waiting on', call.input.id);
                     call.input.used_output = true;
-                    call.input.ret.then(call._call); 
+                    call.input.ret
+                        .done(call._call)
+                        .fail(function(e) { 
+                            call.ret.resolve({schema: 'error', data: {message: 'error on input'}});
+                        })
+                    ;
                 } else { 
                     call._call(); 
                 }

@@ -1,8 +1,87 @@
 <html>
+<head>
+    <style>
+    @font-face {
+      font-family: 'icons';
+      src: url('ninjaicons.woff') format('woff');
+      font-style: normal;
+      font-weight: normal;
+    }
+
+    .icon {
+        font-family: 'icons';
+        vertical-align: text-bottom;
+    }
+
+    #output { 
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 20px;       
+        background: #111;
+        color: white;
+    }   
+
+    #output > div {
+        border-bottom: 1px dashed #333;
+        font-family: monospace;
+    }
+
+    #output > div > div.output-header * { 
+        font-size: 12px;
+    }
+
+    #output > div > div.target { 
+        padding-left: 10px;
+    }
+
+    .output-options {
+        cursor: pointer;
+    }
+    .output-command { 
+        color: #a44;
+        padding-left: 5px;
+    }
+
+    #output div.loading { 
+        background: #422;
+    }
+    
+    #input { 
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 20px;
+        bottom: 0;
+        overflow: hidden;
+    }
+    #input * { 
+        font-family: monospace;
+    }
+    #input-text { 
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        border: none;
+        width: 100%;
+        padding-left: 4px;
+    }
+    </style>
+</head>
 <body>
 
-<div id="target">no output</div>
+<div id="output"></div>
+<div id="input">
+    <span id="input-prompt"></span><input type="text" id="input-text"/>
+</div>
 
+<script type="text/html" id="template-output">
+<div class="loading">
+    <div class="output-header"><span class="icon output-options">g</span><span class="output-command"><%=cmd%></span></div>
+    <div class="target"></div>
+</div>
+</script>
 
 <script type="text/html" id="template-schema-FileList">
 <ul>
@@ -11,7 +90,12 @@
     <% }); %>
 </ul>
 </script>
-
+<script type="text/html" id="template-schema-json">
+<%=JSON.stringify(data)%>
+</script>
+<script type="text/html" id="template-schema-error">
+<span class="icon" style="color: red">!</span> <span style="color: red"><%=data.message%></span>
+</script>
 
 <script src="jquery-1.6.1.js"></script>
 <script src="underscore.js"></script>
@@ -19,12 +103,35 @@
 <script src="jsonselect.js"></script>
 <script>
 
-var $t = $('#target');
-
 var schema_templates = {};
 $('script[id^=template-schema-]').each(function(idx, template) { 
     schema_templates[template.id.replace('template-schema-', '')] = _.template($(template).text());
 });
+
+var $output = $('#output');
+var template_output = _.template($('#template-output').text());
+
+var $input = $('#input-text')
+    .focus()
+    .keypress(function(e) { 
+        if( e.which == 13 ) { 
+            var $c = $(template_output({cmd: $input.val()})).appendTo($output);
+            var cl = parse($input.val());
+            $input.val('');
+            $c.data('call_list', cl);
+            cl.execute().then(function(ret) { 
+                $c.removeClass('loading');
+                var $t = $c.find('.target');
+                $.each(ret, function(key, val) { 
+                    var template = schema_templates[val.schema] || schema_templates['json'];
+                    $t.append(template(val));
+                });
+
+            });
+        }
+    })
+;
+
 
 $.ajaxSetup({
     dataType: 'json'
@@ -71,6 +178,7 @@ var got_context = $.ajax('/context', {
 }).success(function(data) { 
     context.id = data.id;
     context.path = data.path;
+    $('#input-prompt').html(context.path+'$');
     console.log(context.id, context.path);
 });
 
@@ -120,7 +228,8 @@ got_context.then(function() {
     s.set_input(c2);
     c.execute();
     */
-    parse("filelist *.js | select .files:contains(shell)").execute();
+    parse("ls *.js").execute();
+    parse('ls *.js */*.js | select ".files :contains(comm)"').execute();
 });
 
 function parse(s) { 
@@ -128,7 +237,7 @@ function parse(s) {
     console.log(commands);
 
     var cc = new CallChain();
-    cc.debug = true;
+    //cc.debug = true;
 
     _.each(commands, function(command) { 
         var cmd = command.shift();
