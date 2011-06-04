@@ -37,8 +37,8 @@ FileList.prototype.toString = function() {
 };
 FileList.prototype.serialize = function() { 
     return {
-        schema: "FileList",
-        data: {files: this.files}
+        schema: "filelist",
+        data: this.files
     };
 };
 FileList.prototype.add = function(pat) { 
@@ -59,6 +59,23 @@ FileList.prototype.add = function(pat) {
     }
     return r.promise();
 };
+FileList.prototype.stats = function() { 
+    var ps, 
+        ret = [],
+        rr = defer.Deferred();
+    defer.when.apply(null, _.map(this.files, function(fn) { 
+        var r = defer.Deferred();
+        fs.stat(fn, function(err, s) { 
+            s.filename = fn;
+            ret.push(s);
+            r.resolve();
+        });
+        return r;
+    })).then(function() { 
+        rr.resolve(ret);
+    });
+    return rr;
+};
 FileList.prototype.filter = function(pat) { 
     this.files = _.select(this.files, function(f) { return glob.fnmatch(pat, f); });
 };
@@ -66,7 +83,13 @@ FileList.prototype.filter = function(pat) {
 exports.ls = function() { 
     var fl = new FileList(this.context),
         self = this;
-    defer.when.apply(null, _.map(arguments, fl.add, fl)).then(function() { 
-        self.result.resolve(fl.serialize());
+    defer.when.apply(null, _.map(arguments.length ? arguments : '*', fl.add, fl)).then(function() { 
+        if( self.options.x ) { 
+            fl.stats().done(function(data) { 
+                self.result.resolve({schema: 'filelist', data: data, extended: true});
+            });
+        } else {
+            self.result.resolve(fl.serialize());
+        }
     });
 };

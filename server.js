@@ -1,7 +1,8 @@
 var express = require('express'),
     Context = require('./context').Context,
     defer = require('jsdeferred'),
-    _ = require('underscore');
+    _ = require('underscore'),
+    fs = require('fs');
 
 require('express-resource');
 
@@ -37,6 +38,14 @@ var context_res = app.resource('context', {
     }
 });
 
+context_res.add(app.resource('fs', {
+    show: function(req, res) { 
+        fs.stat(req.params.fs, function(err, s) { 
+            res.send(s);
+        });
+    }
+}));
+
 context_res.add(app.resource('command', {
     create: function(req, res) { 
         console.log(req.body);
@@ -63,7 +72,7 @@ context_res.add(app.resource('chain', {
             call._call = function() { 
                 console.log('executing call', call.id);
                 var cmd = commands[call.cmd];
-                context.execute(cmd, call.args, call.options, call.input ? call.input.retval : null)
+                context.execute(cmd, call.args, call.opts, call.input ? call.input.retval : null)
                     .done(function(ret) { 
                         console.log('finished cmd', call.cmd, call.args, ret);
                         call.retval = ret;

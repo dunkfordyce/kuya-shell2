@@ -21,6 +21,7 @@
         bottom: 20px;       
         background: #111;
         color: white;
+        overflow: auto;
     }   
 
     #output > div {
@@ -34,6 +35,9 @@
 
     #output > div > div.target { 
         padding-left: 10px;
+    }
+    #output > div > div.target > * { 
+        color: white;
     }
 
     .output-options {
@@ -58,6 +62,8 @@
     }
     #input * { 
         font-family: monospace;
+        color: white;
+        background: #222;
     }
     #input-text { 
         position: absolute;
@@ -83,17 +89,29 @@
 </div>
 </script>
 
-<script type="text/html" id="template-schema-FileList">
-<ul>
-    <% _.each(data.files, function(file) { %>
-    <li><%=file%></li>
-    <% }); %>
-</ul>
+<script type="text/html" id="template-output-options">
+<div id="output-options-popup">
+
+</div>
 </script>
-<script type="text/html" id="template-schema-json">
+
+<script type="text/html" data-schema="*">
 <%=JSON.stringify(data)%>
 </script>
-<script type="text/html" id="template-schema-error">
+<script type="text/html" data-schema="filelist">
+<table>
+    <% if(!obj.extended ) { %>
+        <% _.each(data, function(file) { %>
+            <tr><td><%=file%></td></tr>
+        <% }); %>
+    <% } else { %>
+        <% $.each(data, function(idx, s) { %> 
+            <tr><td><%=s.filename%></td><td><%=s.size%></td><td><%=s.mode.toString(8).pad(8)%></td></tr>
+        <% }); %>
+    <% }; %>
+</table>
+</script>
+<script type="text/html" data-schema="error">
 <span class="icon" style="color: red">!</span> <span style="color: red"><%=data.message%></span>
 </script>
 
@@ -103,10 +121,37 @@
 <script src="jsonselect.js"></script>
 <script>
 
+String.prototype.pad = function(l, c) { 
+    c = c || '0';
+    var v = this;
+    while( v.length < l ) { 
+        v = c + v;
+    }
+    return v;
+};
+
 var schema_templates = {};
-$('script[id^=template-schema-]').each(function(idx, template) { 
-    schema_templates[template.id.replace('template-schema-', '')] = _.template($(template).text());
+$('script[data-schema]').each(function(idx, template) { 
+    var $t = $(template),
+        schema = $t.attr('data-schema'),
+        templates = schema_templates[schema],
+        is_default = $t.attr('data-default') == 'true',
+        name;
+
+    if( !templates ) { templates = schema_templates[schema] = {}; is_default = true; }
+    name = $t.attr('data-name') || ('unnamed view ' + _.keys(templates).length);
+    templates[name]= _.template($(template).text());
+    if( is_default ) { 
+        templates['default'] = templates[name];
+    }
 });
+
+function render_data(data, view) { 
+    var schema = data.schema,
+        templates = schema_templates[schema] || schema_templates['*'],
+        template = templates[view || 'default'] || templates.default || schema_templates['*'].default;
+    return template(data);
+}
 
 var $output = $('#output');
 var template_output = _.template($('#template-output').text());
@@ -123,8 +168,7 @@ var $input = $('#input-text')
                 $c.removeClass('loading');
                 var $t = $c.find('.target');
                 $.each(ret, function(key, val) { 
-                    var template = schema_templates[val.schema] || schema_templates['json'];
-                    $t.append(template(val));
+                    $t.append(render_data(val));
                 });
 
             });
@@ -147,6 +191,9 @@ var context = {
         }).success(function(ret) { 
             console.log(ret);
         });
+    },
+    fs: function(path) { 
+        return $.ajax('/context/'+this.id+'/fs/'+path);
     },
     filelist: function(pattern) { 
         return this.command('filelist', [pattern]);
@@ -232,6 +279,12 @@ got_context.then(function() {
     parse('ls *.js */*.js | select ".files :contains(comm)"').execute();
 });
 
+var client_commands = {
+    cd: function(path) { 
+        this.context.path = path;
+    }
+};
+
 function parse(s) { 
     var commands = commands_split( quote_split(s) );
     console.log(commands);
@@ -246,8 +299,20 @@ function parse(s) {
             input = cc.calls[cc._idc -1];
             cmd = command.shift();
         }
-        var args = command;
-        var c = cc.add(cmd, args, {});
+        var options = {},
+            args = [];
+        _.each(command, function(c) { 
+            if( c[0] == '-' ) { 
+                if( c[1] == '-' ) { c = c.substring(2); }
+                else { c = c.substring(1); }
+                var p = c.split('=');
+                options[p[0]] = p[1] === undefined ? true : p[1];
+            } else {
+                args.push(c);
+            }
+        });
+        
+        var c = cc.add(cmd, args, options);
         if( input !== null ) { 
             c.set_input(input);
         }
