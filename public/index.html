@@ -21,7 +21,7 @@
         bottom: 20px;       
         background: #111;
         color: white;
-        overflow: auto;
+        overflow: hidden;
     }   
 
     #output > div {
@@ -102,7 +102,7 @@
 <table>
     <% if(!obj.extended ) { %>
         <% _.each(data, function(file) { %>
-            <tr><td><%=file%></td></tr>
+            <tr><td><%=path.relpath(file, context.path)%></td></tr>
         <% }); %>
     <% } else { %>
         <% $.each(data, function(idx, s) { %> 
@@ -119,6 +119,7 @@
 <script src="underscore.js"></script>
 <script src="parser.js"></script>
 <script src="jsonselect.js"></script>
+<script src="path.js"></script>
 <script>
 
 String.prototype.pad = function(l, c) { 
@@ -129,6 +130,51 @@ String.prototype.pad = function(l, c) {
     }
     return v;
 };
+
+var defer = {
+    Deferred: $.Deferred,
+    when: $.when  
+};
+
+/*
+path.commonprefix = function(m) { 
+    var r = '', c=0;
+    while(a[c] == b[c] ) { 
+        r += a[c++];
+    }
+    return r;
+};
+*/
+path.relpath = function(p, b) { 
+    if( b.lastIndexOf('/') !== b.length-1 ) { 
+        b = b + '/';
+    }
+    if( p.indexOf(b) === 0 ) { 
+        return p.substring(b.length);
+    }
+    return p;
+}
+
+function eventer(thing) { 
+    _.extend(thing, {
+        bind: function(ev, cb) { 
+            if( !this._handlers ) { 
+                this._handlers = {};
+            }
+            var cbs = this._handlers[ev];
+            if( !cbs ) { cbs = this._handlers[ev] = []; }
+            cbs.push(cb);
+        },
+        trigger: function(ev, args, ctx) { 
+            if( !this._handlers ) { return; }
+            var cbs = this._handlers[ev];
+            if( !cbs || !cbs.length ) { return; }
+            ctx = ctx || this;
+            _.each(cbs, function(cb) { console.log('trigger', cb, ctx, args); cb.apply(ctx, args); });
+        }
+    });
+};
+
 
 var schema_templates = {};
 $('script[data-schema]').each(function(idx, template) { 
@@ -168,9 +214,11 @@ var $input = $('#input-text')
                 $c.removeClass('loading');
                 var $t = $c.find('.target');
                 $.each(ret, function(key, val) { 
-                    $t.append(render_data(val));
+                    if( val ) { 
+                        $t.append(render_data(val));
+                    }
                 });
-
+                $output.scrollTop( $output.prop("scrollHeight") );
             });
         }
     })
@@ -181,6 +229,24 @@ $.ajaxSetup({
     dataType: 'json'
 });
 
+function Context() { 
+    this.path = null;
+    this.id = null;
+}
+eventer(Context.prototype);
+Context.prototype.execute = function(cmd, args, options, input) { 
+    var c = {
+        context: this,
+        options: options,
+        input: input,
+        result: defer.Deferred()
+    };
+
+    cmd.apply(c, args);
+    return c.result.promise();
+};
+
+/*
 var context = {
     command: function(cmd, args) { 
         return $.ajax('/context/'+this.id+'/command', {
@@ -197,13 +263,90 @@ var context = {
     },
     filelist: function(pattern) { 
         return this.command('filelist', [pattern]);
-    }
+    },
+    execute: 
+};
+*/
+
+Context.prototype.fs = function(p) { 
+    return $.ajax('/context/'+this.id+'/fs', {data: {path: p}});
 };
 
-var C = function() { 
-    return context.filelist.apply(context, arguments);
+Context.prototype.execute_chain = function(chain) { 
+    var calls = chain.calls,
+        context = this,
+        r = defer.Deferred();
+
+    _.values(calls).forEach(function(call) { 
+        call.retval = null;
+        call.used_output = false;
+        call.ret = defer.Deferred();
+        if( call.input !== null ) { call.input = calls[call.input]; }
+        call._call = function() { 
+            console.log('executing call', call.id);
+            var cmd = client_commands[call.cmd];
+            context.execute(cmd, call.args, call.opts, call.input ? call.input.retval : null)
+                .done(function(ret) { 
+                    console.log('finished cmd', call.cmd, call.args, ret);
+                    call.retval = ret;
+                    call.ret.resolve(ret);
+                })
+                .fail(function(ret) { 
+                    console.log('failed cmd', call.cmd, call.args, ret);
+                    call.retval = {schema: 'error', data: ret};
+                    call.ret.resolve(ret);
+                })
+            ;
+        };
+        call.call = function() { 
+            if( call.input ) { 
+                console.log('call', call.id, 'waiting on', call.input.id);
+                call.input.used_output = true;
+                call.input.ret
+                    .done(call._call)
+                    .fail(function(e) { 
+                        call.ret.resolve({schema: 'error', data: {message: 'error on input'}});
+                    })
+                ;
+            } else { 
+                call._call(); 
+            }
+        };
+    });
+    
+    defer.when.apply(null, _.map(_.values(calls), function(call) { 
+        call.call();
+        return call.ret;
+    })).then(function() { 
+        console.log('all resolved');
+        var ret = {};
+        _.values(calls).forEach(function(call) { 
+            if( chain.debug || !call.used_output ) { 
+                ret[call.id] = call.retval;
+            }
+        });
+        console.log('sending', ret);
+        r.resolve(ret);
+    });
+
+    return r.promise();
 };
-C.__proto__ = context;
+
+var context = new Context();
+
+context.bind('path_change', function() { 
+    $('#input-prompt').html(context.path+'$');
+});
+
+var got_context = $.ajax('/context', {
+    type: 'POST',
+}).success(function(data) { 
+    context.id = data.id;
+    context.path = data.path;
+    context.trigger('path_change');
+    console.log(context.id, context.path);
+});
+
 
 function render(ret) { 
     $t.html( schema_templates[ret.schema](ret) );
@@ -220,14 +363,6 @@ function tojson(obj) {
     return JSON.stringify(obj, tojson_replacer);
 }
 
-var got_context = $.ajax('/context', {
-    type: 'POST',
-}).success(function(data) { 
-    context.id = data.id;
-    context.path = data.path;
-    $('#input-prompt').html(context.path+'$');
-    console.log(context.id, context.path);
-});
 
 function Call(cmd, args, opts) { 
     this.id = null;
@@ -245,6 +380,7 @@ function CallChain() {
     this._idc = 0;
     this.debug = false;
     this.calls = {};
+    this.cwd = context.path;
 }
 CallChain.prototype.add = function(cmd, args, opts) { 
     var call = new Call(cmd, args, opts);
@@ -253,9 +389,13 @@ CallChain.prototype.add = function(cmd, args, opts) {
     return call;
 };
 CallChain.prototype.execute = function() { 
+    if( _.all(this.calls, function(c) { return client_commands[c.cmd]; }) ) { 
+        return context.execute_chain(this);
+    }
+
     return $.ajax('/context/'+context.id+'/chain', {
         type: 'POST',
-        data: JSON.stringify(this),
+        data: JSON.stringify({context: context, chain: this}),
         processData: false,
         contentType: 'application/json'
     }).success(function(data) { 
@@ -264,24 +404,21 @@ CallChain.prototype.execute = function() {
     });
 };
 
-got_context.then(function() { 
-    /*
-    var c = new CallChain();
-    c.debug = true;
-    var c1 = c.add('test', ['a']);
-    var c2 = c.add('test', ['b']);
-    var s = c.add('select', ['.args']);
-    c2.set_input(c1);
-    s.set_input(c2);
-    c.execute();
-    */
-    parse("ls *.js").execute();
-    parse('ls *.js */*.js | select ".files :contains(comm)"').execute();
-});
-
 var client_commands = {
-    cd: function(path) { 
-        this.context.path = path;
+    cd: function(p) { 
+        var self = this;
+        if( p[0] !== '/' ) { 
+            p = path.join(this.context.path, p);
+        }
+        context.fs(p).then(function(r) { 
+            if( r ) { 
+                self.context.path = p;
+                context.trigger('path_change');
+            } else {
+                console.warn(p, 'doenst exist!');
+            }
+            self.result.resolve();
+        });
     }
 };
 
