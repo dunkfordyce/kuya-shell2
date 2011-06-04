@@ -1,7 +1,7 @@
 var fs = require('fs'),
     path = require('path'),
     _ = require('underscore'),
-    defer = require('jsdeferred'),
+    defer = require('../deferred'),
     glob = require('glob');
 
 glob.GLOB_DEFAULT =    glob.GLOB_BRACE

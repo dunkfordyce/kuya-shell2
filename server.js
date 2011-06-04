@@ -1,6 +1,6 @@
 var express = require('express'),
     Context = require('./context').Context,
-    defer = require('jsdeferred'),
+    defer = require('./deferred'),
     _ = require('underscore'),
     fs = require('fs');
 

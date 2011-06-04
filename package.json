@@ -1,0 +1,15 @@
+{
+  "name": "kuya-shell",
+  "description": "an experimental shell",
+  "version": "0.0.1",
+  "author": "Dunk Fordyce <dunkfordyce@gmail.com>",
+  "dependencies": {
+    "express": "*",
+    "express-resource": "*",
+    "glob": "*",
+    "JSONSelect": "*",
+    "underscore": "*"
+  },
+  "keywords": ["webby-cli", "shell"],
+  "repository": "git://github.com/dunkfordyce/kuya-shell2"
+}

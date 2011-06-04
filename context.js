@@ -1,5 +1,5 @@
 var _ = require('underscore'),
-    defer = require('jsdeferred');
+    defer = require('./deferred');
 
 function Context() { 
     this.path = process.cwd();
