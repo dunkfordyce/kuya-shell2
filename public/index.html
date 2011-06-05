@@ -46,10 +46,18 @@
     .output-command { 
         color: #a44;
         padding-left: 5px;
+        cursor: pointer;
     }
 
     #output div.loading { 
         background: #422;
+    }
+
+    #output .filename {
+        cursor: pointer;
+    }
+    #output .filename:hover { 
+        text-decoration: underline;
     }
     
     #input { 
@@ -95,6 +103,10 @@
 </div>
 </script>
 
+<script type="text/html" data-template-helper="filename">
+<a class="filename"><%=path.relpath(obj, context.path)%></a>
+</script>
+
 <script type="text/html" data-schema="*">
 <%=JSON.stringify(data)%>
 </script>
@@ -102,11 +114,11 @@
 <table>
     <% if(!obj.extended ) { %>
         <% _.each(data, function(file) { %>
-            <tr><td><%=path.relpath(file, context.path)%></td></tr>
+            <tr><td><%=helpers.filename(file)%></td></tr>
         <% }); %>
     <% } else { %>
         <% $.each(data, function(idx, s) { %> 
-            <tr><td><%=s.filename%></td><td><%=s.size%></td><td><%=s.mode.toString(8).pad(8)%></td></tr>
+            <tr><td><%=helpers.filename(s.filename)%></td><td><%=s.size%></td><td><%=s.mode.toString(8).pad(8)%></td></tr>
         <% }); %>
     <% }; %>
 </table>
@@ -186,11 +198,19 @@ $('script[data-schema]').each(function(idx, template) {
 
     if( !templates ) { templates = schema_templates[schema] = {}; is_default = true; }
     name = $t.attr('data-name') || ('unnamed view ' + _.keys(templates).length);
-    templates[name]= _.template($(template).text());
+    templates[name]= _.template($t.text());
     if( is_default ) { 
         templates['default'] = templates[name];
     }
 });
+
+var helpers = {};
+$('script[data-template-helper]').each(function(idx, template) { 
+    var $t = $(template),
+        name = $t.attr('data-template-helper');
+    helpers[name] = _.template($t.text());
+});
+
 
 function render_data(data, view) { 
     var schema = data.schema,
@@ -223,6 +243,14 @@ var $input = $('#input-text')
         }
     })
 ;
+
+$output.delegate('.filename', 'click', function() { 
+    $input.val( $input.val() + $(this).text() ).focus();
+});
+
+$output.delegate('.output-command', 'click', function() { 
+    $input.val( $(this).text() ).focus();
+});
 
 
 $.ajaxSetup({
