@@ -25,7 +25,8 @@ var context_res = app.resource('context', {
 
         res.send( {
             id: id,
-            path: context.path
+            path: context.path,
+            env: context.env
         } );
     },
     show: function(req, res) { 

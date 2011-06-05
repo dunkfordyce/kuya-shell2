@@ -28,68 +28,39 @@ function expand(pat) {
     return r;
 }
 
-function FileList(context) { 
-    this.context = context;
-    this.files = [];
-}
-FileList.prototype.toString = function() { 
-    return "FileList: "+this.files.join(', ');
-};
-FileList.prototype.serialize = function() { 
-    return {
-        schema: "filelist",
-        data: this.files
-    };
-};
-FileList.prototype.add = function(pat) { 
-    var r = defer.Deferred();
-    if( pat[0] !== '/' ) pat = path.join(this.context.path, pat);
-    pat = path.normalize(pat);
-    if( is_pattern(pat) ) { 
-        console.log('pattern', pat);
-        var self = this;
-        expand(pat).then(function(files) {
-            self.files = self.files.concat(files);
-            r.resolve(self);
-        });
-    } else {
-        console.log('file', pat);
-        this.files.push( pat );
-        r.resolve(this);
-    }
-    return r.promise();
-};
-FileList.prototype.stats = function() { 
-    var ps, 
-        ret = [],
-        rr = defer.Deferred();
-    defer.when.apply(null, _.map(this.files, function(fn) { 
-        var r = defer.Deferred();
-        fs.stat(fn, function(err, s) { 
-            s.filename = fn;
-            ret.push(s);
-            r.resolve();
-        });
-        return r;
-    })).then(function() { 
-        rr.resolve(ret);
-    });
-    return rr;
-};
-FileList.prototype.filter = function(pat) { 
-    this.files = _.select(this.files, function(f) { return glob.fnmatch(pat, f); });
-};
-
 exports.ls = function() { 
-    var fl = new FileList(this.context),
-        self = this;
-    defer.when.apply(null, _.map(arguments.length ? arguments : '*', fl.add, fl)).then(function() { 
-        if( self.options.x ) { 
-            fl.stats().done(function(data) { 
-                self.result.resolve({schema: 'filelist', data: data, extended: true});
-            });
+    var self = this,
+        ret = [],
+        ps = [],
+        ps2 = [];
+
+    _.each(arguments.length ? arguments : ['*'], function(p) { 
+        if( is_pattern(p) ) { 
+            ps.push( expand(p).then(function(files) { 
+                console.log('files', files);
+                files.forEach(function(f) { 
+                    ps2.push( stat(f).then(function(s) { 
+                        console.log('stat', s);
+                        ret.push(s);
+                    }));
+                });
+            }) );
         } else {
-            self.result.resolve(fl.serialize());
+            ps.push( stat(p).then(function(s) { 
+                ret.push(s);
+            }) );
         }
     });
+
+    defer.when.apply(null, ps).then(function() { 
+        defer.when.apply(null, ps2).then(function() { 
+            self.result.resolve({
+                schema: 'filelist',
+                data: ret
+            });
+        });
+    });
 };
+
+
+

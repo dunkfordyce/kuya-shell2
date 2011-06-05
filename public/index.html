@@ -120,19 +120,13 @@
 </script>
 <script type="text/html" data-schema="filelist">
 <table>
-    <% if(!obj.extended ) { %>
-        <% _.each(data, function(file) { %>
-            <tr><td><%=helpers.filename(file)%></td></tr>
-        <% }); %>
-    <% } else { %>
-        <% $.each(data, function(idx, s) { %> 
-            <tr>
-                <td><%=helpers.filename(s.filename)%></td>
-                <td align="right"><%=helpers.filesize(s.size)%></td>
-                <td><%=helpers.filemode(s.mode)%></td>
-            </tr>
-        <% }); %>
-    <% }; %>
+    <% $.each(data, function(idx, s) { %> 
+        <tr>
+            <td><%=helpers.filename(s.filename)%></td>
+            <td align="right"><%=helpers.filesize(s.size)%></td>
+            <td><%=helpers.filemode(s.mode)%></td>
+        </tr>
+    <% }); %>
 </table>
 </script>
 <script type="text/html" data-schema="error">
@@ -382,10 +376,8 @@ context.bind('path_change', function() {
 var got_context = $.ajax('/context', {
     type: 'POST',
 }).success(function(data) { 
-    context.id = data.id;
-    context.path = data.path;
+    _.extend(context, data);
     context.trigger('path_change');
-    console.log(context.id, context.path);
 });
 
 
@@ -459,6 +451,7 @@ CallChain.prototype.execute = function() {
 var client_commands = {
     cd: function(p) { 
         var self = this;
+        p = p || context.env.HOME;
         if( p[0] !== '/' ) { 
             p = path.join(this.context.path, p);
         }

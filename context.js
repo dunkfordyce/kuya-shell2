@@ -8,6 +8,9 @@ var commands = {
 
 function Context() { 
     this.path = process.cwd();
+    this.env = {
+        HOME: process.env.HOME
+    };
 }
 
 Context.prototype.execute = function(cmd, args, options, input) { 
