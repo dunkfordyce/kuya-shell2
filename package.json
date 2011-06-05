@@ -9,6 +9,7 @@
     "glob": "*",
     "JSONSelect": "*",
     "underscore": "*"
+    "socket.io": "*"
   },
   "keywords": ["webby-cli", "shell"],
   "repository": "git://github.com/dunkfordyce/kuya-shell2"

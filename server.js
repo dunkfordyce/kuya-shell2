@@ -72,3 +72,21 @@ context_res.add(app.resource('chain', {
 
 console.log('listening on 3000');
 app.listen(3000);
+
+var io = require('socket.io'); 
+var socket = io.listen(app); 
+socket.on('connection', function(client) { 
+    console.log('connection!', client);    
+    client.on('message', function(call){ 
+        var context = new Context();
+        context.path = call.context.path;
+        context.execute_chain({calls: call.chain.calls, debug: call.chain.debug})
+            .then(function(r) { 
+                client.send({id: call.id, ret: r});
+            })
+        ;
+    }); 
+    client.on('disconnect', function(){ console.log('disconect', arguments); });
+});
+
+

@@ -144,6 +144,7 @@
 <script src="parser.js"></script>
 <script src="jsonselect.js"></script>
 <script src="path.js"></script>
+<script src="http://localhost:3000/socket.io/socket.io.js"></script> 
 <script>
 
 String.prototype.pad = function(l, c) { 
@@ -428,11 +429,21 @@ CallChain.prototype.add = function(cmd, args, opts) {
     this.calls[call.id] = call;
     return call;
 };
+
+var socket_calls = {};
+
 CallChain.prototype.execute = function() { 
     if( _.all(this.calls, function(c) { return client_commands[c.cmd]; }) ) { 
         return context.execute_chain(this);
     }
 
+    var d = {id: _.uniqueId('callchain'), context: context, chain: this};
+    socket_calls[d.id] = defer.Deferred();
+    socket.send(d);
+
+    return socket_calls[d.id];
+
+    /*
     return $.ajax('/context/'+context.id+'/chain', {
         type: 'POST',
         data: JSON.stringify({context: context, chain: this}),
@@ -442,6 +453,7 @@ CallChain.prototype.execute = function() {
         console.log('callchain execute received', data);
         window.$0 = data;
     });
+    */
 };
 
 var client_commands = {
@@ -499,7 +511,15 @@ function parse(s) {
     return cc;
 }
 
-
+var socket = new io.Socket('localhost'); 
+socket.connect();
+socket.on('connect', function() { console.log('connect socket', arguments); });
+socket.on('message', function(m) { 
+    console.log('message socket', arguments); 
+    socket_calls[m.id].resolve(m.ret);
+    delete socket_calls[m.id];
+});
+socket.on('disconnect', function() { console.log('discon socket', arguments); });
 </script>
 
 </body>
