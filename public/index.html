@@ -126,7 +126,11 @@
         <% }); %>
     <% } else { %>
         <% $.each(data, function(idx, s) { %> 
-            <tr><td><%=helpers.filename(s.filename)%></td><td align="right"><%=helpers.filesize(s.size)%></td><td><%=helpers.filemode(s.mode)%></td></tr>
+            <tr>
+                <td><%=helpers.filename(s.filename)%></td>
+                <td align="right"><%=helpers.filesize(s.size)%></td>
+                <td><%=helpers.filemode(s.mode)%></td>
+            </tr>
         <% }); %>
     <% }; %>
 </table>
