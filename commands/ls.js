@@ -28,6 +28,20 @@ function expand(pat) {
     return r;
 }
 
+function stat(f) { 
+    var p = defer.Deferred();
+
+    fs.stat(f, function(err, s) { 
+        if( err ) p.reject(err);
+        else {
+            s.filename = f;
+            p.resolve(s);
+        }
+    });
+
+    return p;
+}
+
 exports.ls = function() { 
     var self = this,
         ret = [],

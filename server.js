@@ -14,6 +14,38 @@ app.use(express.bodyParser());
 var contexts = {},
     context_c = 0;
 
+app.get('/constants', function(req, res) { 
+    res.send(process.binding('constants'));
+});
+
+app.get('/mime', function(req, res) { 
+    res.send(require('mime').types);   
+});
+
+var mime_icons = {};
+(function() { 
+    var lines = fs.readFileSync('/usr/share/mime/generic-icons', 'ascii').split(/[\r\n]+/);
+    lines.forEach(function(line) { 
+        var p = line.split(':');
+        mime_icons[p[0]] = p[1];
+    });
+})();
+mime_icons['text/plain'] = 'text-x-generic';
+
+app.get('/mimeicon', function(req, res) { 
+    var mtype = req.query.mime;
+    res.contentType('image/png');
+    fs.readFile('/usr/share/icons/gnome/16x16/mimetypes/'+mime_icons[mtype]+'.png', function(err, data) { 
+        if( err ) { 
+            fs.readFile('/usr/share/icons/gnome/16x16/mimetypes/unknown.png', function(err, data) { 
+                res.send(data);
+            });
+        } else {
+            res.send(data);
+        }
+    });
+});
+
 var context_res = app.resource('context', {
     load: function(id, fn) { 
         fn(null, contexts[id]);

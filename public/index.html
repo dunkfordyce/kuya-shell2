@@ -21,7 +21,7 @@
         bottom: 20px;       
         background: #111;
         color: white;
-        overflow: hidden;
+        overflow: auto;
     }   
 
     #output > div {
@@ -49,6 +49,11 @@
         cursor: pointer;
     }
 
+    .result-options { 
+        float: left;
+        cursor: pointer;
+    }
+
     #output div.loading { 
         background: #422;
     }
@@ -56,8 +61,11 @@
     #output .filename {
         cursor: pointer;
     }
-    #output .filename:hover { 
-        text-decoration: underline;
+    #output .filename.file { 
+        color: red;
+    }
+    #output .filename.directory { 
+        color: blue;
     }
     
     #input { 
@@ -81,7 +89,7 @@
         width: 100%;
         padding-left: 4px;
     }
-    </style>
+   </style>
 </head>
 <body>
 
@@ -91,9 +99,17 @@
 </div>
 
 <script type="text/html" id="template-output">
-<div class="loading">
+<div class="loading command">
     <div class="output-header"><span class="icon output-options">g</span><span class="output-command"><%=cmd%></span></div>
     <div class="target"></div>
+</div>
+</script>
+<script type="text/html" id="template-output-command">
+<div class="command-result" data-command-id="<%=id%>">
+    <span class="icon result-options">T</span>
+    <div class="result">
+        <%=render_data(data)%>
+    </div>
 </div>
 </script>
 
@@ -103,28 +119,50 @@
 </div>
 </script>
 
+<script type="text/html" id="template-result-options">
+    result opts
+</script>
+
 <script type="text/html" data-template-helper="filename">
-<a class="filename"><%=path.relpath(obj, context.path)%></a>
+<%
+var f_or_d = fs_stat.isFile(obj) ? 'file' : 'directory';
+var link = fs_stat.isSymbolicLink(obj) ? 'link' : '';
+%>
+<a class="filename <%=f_or_d%> <%=link%>"><img src="/mimeicon?mime=<%=mime_type(filename)%>"/><%=path.relpath(filename, context.path)%></a>
 </script>
 
 <script type="text/html" data-template-helper="filemode">
-<%=obj.toString(8).pad(8)%>
+<%=mode.toString(8).pad(8)%>
 </script>
 
 <script type="text/html" data-template-helper="filesize">
-<%=obj%> bytes
+<%=size%> bytes
 </script>
 
 <script type="text/html" data-schema="*">
 <%=JSON.stringify(data)%>
 </script>
-<script type="text/html" data-schema="filelist">
+<script type="text/html" data-schema="filelist" data-name="list">
 <table>
     <% $.each(data, function(idx, s) { %> 
         <tr>
-            <td><%=helpers.filename(s.filename)%></td>
-            <td align="right"><%=helpers.filesize(s.size)%></td>
-            <td><%=helpers.filemode(s.mode)%></td>
+            <td><%=helpers.filename(s)%></td>
+            <td align="right"><%=helpers.filesize(s)%></td>
+            <td><%=helpers.filemode(s)%></td>
+        </tr>
+    <% }); %>
+</table>
+</script>
+<script type="text/html" data-schema="filelist" data-name="size">
+<table>
+    <% 
+    var max = _.max(data, function(s) { return s.size; });
+    %>
+    <% $.each(data, function(idx, s) { %>
+        <tr>
+            <td><%=helpers.filename(s)%></td>
+            <td><div width="<%=(s.size / max * 100)%>%"></div></td>
+            <td><%=helpers.filesize(s)%></td>
         </tr>
     <% }); %>
 </table>
@@ -134,12 +172,18 @@
 </script>
 
 <script src="jquery-1.6.1.js"></script>
+<script src="jquery.ui.position.js"></script>
 <script src="underscore.js"></script>
 <script src="parser.js"></script>
 <script src="jsonselect.js"></script>
 <script src="path.js"></script>
-<script src="http://localhost:3000/socket.io/socket.io.js"></script> 
+<script src="/socket.io/socket.io.js"></script> 
 <script>
+
+$.fn.log = function() { 
+    console.log(this.selector, this, arguments);
+    return this;
+};
 
 String.prototype.pad = function(l, c) { 
     c = c || '0';
@@ -154,6 +198,51 @@ var defer = {
     Deferred: $.Deferred,
     when: $.when  
 };
+
+var fs_constants = null;
+$.ajax('/constants').then(function(c) { fs_constants = c; });
+
+var fs_stat = {};
+fs_stat._checkModeProperty = function(s, property) {
+  return ((s.mode & fs_constants.S_IFMT) === property);
+};
+
+fs_stat.isDirectory = function(s) {
+  return fs_stat._checkModeProperty(s, fs_constants.S_IFDIR);
+};
+
+fs_stat.isFile = function(s) {
+  return fs_stat._checkModeProperty(s, fs_constants.S_IFREG);
+};
+
+fs_stat.isBlockDevice = function(s) {
+  return fs_stat._checkModeProperty(s, fs_constants.S_IFBLK);
+};
+
+fs_stat.isCharacterDevice = function(s) {
+  return fs_stat._checkModeProperty(s, fs_constants.S_IFCHR);
+};
+
+fs_stat.isSymbolicLink = function(s) {
+  return fs_stat._checkModeProperty(s, fs_constants.S_IFLNK);
+};
+
+fs_stat.isFIFO = function(s) {
+  return fs_stat._checkModeProperty(s, fs_constants.S_IFIFO);
+};
+
+fs_stat.isSocket = function(s) {
+  return fs_stat._checkModeProperty(s, fs_constants.S_IFSOCK);
+};
+
+
+var mime_types = null;
+$.ajax('/mime').then(function(m) { mime_types = m; });
+
+function mime_type(path) { 
+    var ext = path.replace(/.*[\.\/]/, '').toLowerCase();
+    return mime_types[ext] || '';
+}
 
 /*
 path.commonprefix = function(m) { 
@@ -206,10 +295,12 @@ $('script[data-schema]').each(function(idx, template) {
     if( !templates ) { templates = schema_templates[schema] = {}; is_default = true; }
     name = $t.attr('data-name') || ('unnamed view ' + _.keys(templates).length);
     templates[name]= _.template($t.text());
+    //templates[name].name = name;
     if( is_default ) { 
         templates['default'] = templates[name];
     }
 });
+
 
 var helpers = {};
 $('script[data-template-helper]').each(function(idx, template) { 
@@ -218,16 +309,37 @@ $('script[data-template-helper]').each(function(idx, template) {
     helpers[name] = _.template($t.text());
 });
 
-
-function render_data(data, view) { 
+function templates_for(data) { 
     var schema = data.schema,
-        templates = schema_templates[schema] || schema_templates['*'],
-        template = templates[view || 'default'] || templates.default || schema_templates['*'].default;
-    return template(data);
+        ret = {'generic': schema_templates['*']},
+        stemplates = schema_templates[schema];
+
+    if( stemplates ) { 
+        ret[schema] = stemplates;
+    }
+    
+    return ret;
+}
+
+function template_for(data, schema, name) { 
+    var potential = templates_for(data);
+    console.log('poten', potential);
+    if( !schema ) schema = data.schema;
+    if( !name ) name = 'default';
+    var t = potential[schema][name];
+    if( !t ) { t = potential[schema]['default']; }
+    if( !t ) { t = potential['generic']['default']; }
+    return t;
+}
+
+function render_data(data, schema, name) { 
+    return template_for(data, schema, name)(data);
 }
 
 var $output = $('#output');
 var template_output = _.template($('#template-output').text());
+var template_output_command = _.template($('#template-output-command').text());
+var template_result_options = _.template($('#template-result-options').text());
 
 var $input = $('#input-text')
     .focus()
@@ -238,11 +350,12 @@ var $input = $('#input-text')
             $input.val('');
             $c.data('call_list', cl);
             cl.execute().then(function(ret) { 
+                $c.data('result', ret);
                 $c.removeClass('loading');
                 var $t = $c.find('.target');
                 $.each(ret, function(key, val) { 
                     if( val ) { 
-                        $t.append(render_data(val));
+                        $t.append(template_output_command({id: key, data: val}));
                     }
                 });
                 $output.scrollTop( $output.prop("scrollHeight") );
@@ -257,6 +370,25 @@ $output.delegate('.filename', 'click', function() {
 
 $output.delegate('.output-command', 'click', function() { 
     $input.val( $(this).text() ).focus();
+});
+
+$output.delegate('.output-options', 'click', function(e) { 
+    var $out = $(this).parents('.command'),
+        call_list = $out.data('call_list'),
+        result = $out.data('result');
+    console.log(call_list, result);
+});
+
+$output.delegate('.result-options', 'click', function(e) { 
+    var $result = $(this).parents('.command-result'),
+        call_id = $result.data('command-id'),
+        $out = $result.parents('.command'),
+        call_list = $out.data('call_list'),
+        result = $out.data('result');
+
+    console.log(this, call_id, $out, call_list, result);
+
+    var $menu = $('<div/>').html(template_result_options(call_list[call_id]));
 });
 
 
