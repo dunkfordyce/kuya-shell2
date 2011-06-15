@@ -6,19 +6,16 @@ var express = require('express'),
 
 require('express-resource');
 
-
 var app = express.createServer();
 app.use(express.static(__dirname + '/public'));
 app.use(express.bodyParser());
 
-var contexts = {},
-    context_c = 0;
 
-app.get('/constants', function(req, res) { 
+app.get('/constants/fs.json', function(req, res) { 
     res.send(process.binding('constants'));
 });
 
-app.get('/mime', function(req, res) { 
+app.get('/constants/mime.json', function(req, res) { 
     res.send(require('mime').types);   
 });
 
@@ -32,8 +29,8 @@ var mime_icons = {};
 })();
 mime_icons['text/plain'] = 'text-x-generic';
 
-app.get('/mimeicon', function(req, res) { 
-    var mtype = req.query.mime;
+app.get('/icon/mime', function(req, res) { 
+    var mtype = req.query.type;
     res.contentType('image/png');
     fs.readFile('/usr/share/icons/gnome/16x16/mimetypes/'+mime_icons[mtype]+'.png', function(err, data) { 
         if( err ) { 
@@ -45,6 +42,9 @@ app.get('/mimeicon', function(req, res) {
         }
     });
 });
+
+var contexts = {},
+    context_c = 0;
 
 var context_res = app.resource('context', {
     load: function(id, fn) { 
@@ -67,20 +67,8 @@ var context_res = app.resource('context', {
     }
 });
 
-context_res.add(app.resource('fs', {
-    index: function(req, res) { 
-        console.log('fs', req.query.path);
-        fs.stat(req.query.path, function(err, s) { 
-            console.log('fs', s);
-            res.send(s);
-        });
-    }
-}));
-
 context_res.add(app.resource('command', {
     create: function(req, res) { 
-        console.log(req.body);
-
         var cmd = req.context[req.body.cmd];
         console.log('cmd', cmd);
         console.log('args', req.body.args);

@@ -36,7 +36,7 @@ vows.describe('context')
             'prepare command': function(context) { 
                 var r = context.prepare_command('testfunc1');
                 assert.isFunction( r );
-                assert.ok( r.cmd_data );
+                assert.equal( r.cmd, testfunc1  );
             },
             'prepare missing': function(context) { 
                 assert.throws(function() { 
@@ -46,7 +46,7 @@ vows.describe('context')
             'prepare non string': function(context) { 
                 var f = function() {},
                     r = context.prepare_command(f);
-                assert.equal(f, r.cmd_data.cmd);
+                assert.equal(f, r.cmd);
             },
             testasync: {
                 topic: function () {
@@ -135,16 +135,14 @@ vows.describe('context')
             },
             'execute chain': {
                 topic: function(context) { 
-                    var f1 = function(arg) { 
-                            this.result.resolve(arg);
-                        },
-                        f2 = function() { 
-                            this.result.resolve(this.input + ' chained');
+                    var f = function(arg) { 
+                            this.result.resolve(this.input ? (this.input + ' ' + arg) : arg);
                         },
                         r = context.execute_chain({
-                            f1: { cmd: f1, args: ['arg1'] },
-                            f2: { cmd: f2, input: 'f1' }
-                        }).done(console.log).fail(console.error),
+                            f1: { cmd: f, args: ['arg1'] },
+                            f2: { cmd: f, args: ['arg2'], input: 'f1' },
+                            f3: { cmd: f, args: ['arg3'], input: 'f2' }
+                        }),
                         cb = this.callback;
                     r.then(
                         function(re) { cb(null, re); },
@@ -152,11 +150,35 @@ vows.describe('context')
                     );
                 },
                 'chained output': function(err, ret) { 
-                    console.log(ret);
-                    console.log(err);
                     assert.ifError(err);
-                    assert.equal(ret.f2, 'arg1 chained');
+                    assert.equal(ret.f3, 'arg1 arg2 arg3');
                 }
+            },
+            'chain fail part': {
+                topic: function(context) { 
+                    var f = function(arg) { 
+                            if( arg == 'fail' ) { 
+                                this.result.reject('fail');
+                            } else {
+                                this.result.resolve(this.input ? (this.input + ' ' + arg) : arg);
+                            }
+                        },
+                        r = context.execute_chain({
+                            f1: { cmd: f, args: ['arg1'] },
+                            f2: { cmd: f, args: ['fail'], input: 'f1' },
+                            f3: { cmd: f, args: ['arg3'], input: 'f2' }
+                        }),
+                        cb = this.callback;
+                    r.then(
+                        function(re) { cb(null, re); },
+                        function(re) { cb(re, null); }
+                    );
+                },
+                'chained output': function(err, ret) { 
+                    assert.ok(err);
+                    assert.equal(ret, null);
+                }
+
             }
         }
     })

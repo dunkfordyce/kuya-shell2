@@ -128,7 +128,7 @@
 var f_or_d = fs_stat.isFile(obj) ? 'file' : 'directory';
 var link = fs_stat.isSymbolicLink(obj) ? 'link' : '';
 %>
-<a class="filename <%=f_or_d%> <%=link%>"><img src="/mimeicon?mime=<%=mime_type(filename)%>"/><%=path.relpath(filename, context.path)%></a>
+<a class="filename <%=f_or_d%> <%=link%>"><img src="/icon/mime?type=<%=mime_type(filename)%>"/><%=path.relpath(filename, context.path)%></a>
 </script>
 
 <script type="text/html" data-template-helper="filemode">
@@ -200,7 +200,7 @@ var defer = {
 };
 
 var fs_constants = null;
-$.ajax('/constants').then(function(c) { fs_constants = c; });
+$.ajax('/constants/fs.json').then(function(c) { fs_constants = c; });
 
 var fs_stat = {};
 fs_stat._checkModeProperty = function(s, property) {
@@ -237,7 +237,7 @@ fs_stat.isSocket = function(s) {
 
 
 var mime_types = null;
-$.ajax('/mime').then(function(m) { mime_types = m; });
+$.ajax('/constants/mime.json').then(function(m) { mime_types = m; });
 
 function mime_type(path) { 
     var ext = path.replace(/.*[\.\/]/, '').toLowerCase();

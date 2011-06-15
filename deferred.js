@@ -1,5 +1,5 @@
 var // Promise methods
-	promiseMethods = "then done fail isResolved isRejected promise".split( " " ),
+	promiseMethods = "then done always fail isResolved isRejected promise".split( " " ),
 	// Static reference to slice
 	sliceDeferred = [].slice;
 
@@ -91,6 +91,9 @@ exports.Deferred = function( func ) {
     deferred.then = function( doneCallbacks, failCallbacks ) {
         deferred.done( doneCallbacks ).fail( failCallbacks );
         return this;
+    };
+    deferred.always = function() {
+        return deferred.done.apply( deferred, arguments ).fail.apply( this, arguments );
     };
     deferred.fail = failDeferred.done;
     deferred.rejectWith = failDeferred.resolveWith;
