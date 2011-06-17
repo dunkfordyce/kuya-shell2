@@ -23,11 +23,10 @@ CommandList.prototype.extend = function(commands) {
     _.extend(this.commands, commands);
 };
 
-var default_commands = CommandList({
+exports.default_commands = new CommandList({
     ls: require('./commands/ls').ls,
     select: require('./commands/select').select
 });
-exports.default_commands = default_commands;
 
 function Context(options) { 
     options = options || {};
@@ -35,38 +34,54 @@ function Context(options) {
     this.env = options.env || {
         HOME: process.env.HOME
     };
-    this.commands = options.commands || default_commands;
+    this.commands = options.commands || exports.default_commands;
 }
 
 Context.prototype._prepare_command = function(cmd, args, options, input) { 
-    var c = {
+    var ret_promise = defer.Deferred(),
+        c = {
             context: this,
             cmd: cmd,
             options: options,
             input: input,
-            result: defer.Deferred()
+            result: defer.Deferred(),
+            schema: ''
         },
         f = function() { 
             (c.input || defer.Deferred().resolve())
                 .done(function(result) { 
+                    var ret;
                     c.input = result;
                     try { 
-                        c.cmd.apply(c, args);
+                        ret = c.cmd.apply(c, args);
                     } catch(e) { 
-                        c.cmd.result.reject(e);
+                        console.error(e.stack);
+                        c.result.reject(e);
+                        return;
+                    }
+                    if( ret !== undefined ) { 
+                        c.result.resolve(ret);
                     }
                 })
                 .fail(function() { 
                     c.result.reject({message: 'failed on input'});
                 })
             ; 
-            return c.result.promise();
+            return ret_promise.promise();
         };
+
+    c.result.done(function(ret) { 
+        ret_promise.resolve({schema: c.schema, data: ret});
+    });
+    c.result.fail(function(ret) { 
+        ret_promise.reject({schema: 'error', data: ret});
+    });
+
     f.input = function(promise) { 
         c.input = promise;
         return this;
     };
-    f.result = c.result.promise();
+    f.result = ret_promise.promise();
     f.cmd = cmd;
     return f;
 };

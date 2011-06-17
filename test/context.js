@@ -5,17 +5,37 @@ var vows = require('vows'),
     fs = require('fs'),
     defer = require('../deferred');
 
-function testfunc1() {};
-function testfunc2() {};
+function nullfunc() {};
+
+var test_commands = new context.CommandList({
+    truefunc: function() { 
+        this.result.resolve(true);
+    },
+    passthru_args: function(args) { 
+        this.result.resolve(args);
+    },
+    passthru_options: function() { 
+        this.result.resolve(this.options);
+    },
+    passthru_input: function() { 
+        this.result.resolve(this.input.data);
+    },
+    append_to_input: function(arg) { 
+        this.result.resolve(this.input ? (this.input.data +' '+arg) : arg);
+    },
+    always_fail: function(arg) { 
+        this.result.reject('fail!');
+    }
+});
 
 vows.describe('context')
     .addBatch({
         'CommandList': {
             topic: new context.CommandList({
-                testfunc1: testfunc1
+                testfunc1: nullfunc
             }),
             'get': function(command_list) { 
-                assert.equal(command_list.get('testfunc1'), testfunc1);
+                assert.equal(command_list.get('testfunc1'), nullfunc);
             },
             'get missing': function(command_list) { 
                 assert.throws(function() { 
@@ -23,20 +43,19 @@ vows.describe('context')
                 }, context.CommandNotFound);
             },
             'extend': function(command_list) { 
+                var testfunc2 = function() {};
                 command_list.extend({testfunc2: testfunc2});
                 assert.equal(command_list.get('testfunc2'), testfunc2);
             }
         },
         'Context': { 
             topic: new context.Context({
-                commands: new context.CommandList({
-                    testfunc1: testfunc1
-                })
+                commands: test_commands
             }),
             'prepare command': function(context) { 
-                var r = context.prepare_command('testfunc1');
+                var r = context.prepare_command('truefunc');
                 assert.isFunction( r );
-                assert.equal( r.cmd, testfunc1  );
+                assert.equal( r.cmd, test_commands.commands.truefunc  );
             },
             'prepare missing': function(context) { 
                 assert.throws(function() { 
@@ -48,46 +67,23 @@ vows.describe('context')
                     r = context.prepare_command(f);
                 assert.equal(f, r.cmd);
             },
-            testasync: {
-                topic: function () {
-                    var promise = new(events.EventEmitter);
-
-                    fs.stat('/home/dunk/.bashrc', function (e, res) {
-                        if (e) { promise.emit('error', e) }
-                        else   { promise.emit('success', res) }
-                    });
-                    return promise;
-                  },
-                  'can be accessed': function (err, stat) {
-                    assert.isNull   (err);        // We have no error
-                    assert.isObject (stat);       // We have a stat object
-                  },
-                  'is not empty': function (err, stat) {
-                    assert.isNotZero (stat.size); // The file size is > 0
-                  }
-            },
             'execute command': {
                 topic: function(context) { 
-                    var f = function() { 
-                            this.result.resolve(true); 
-                        },
-                        r = context.execute_command(f),
+                    var r = context.execute_command('truefunc'),
                         cb = this.callback;
                     r.then(
                         function(a) { cb(null, a); },
                         function(a) { cb(a, null); }
                     );
                 },
-                'command executed': function(err, success) { 
+                'command executed': function(err, result) { 
                     assert.ifError(err);
+                    assert.equal(result.data, true);
                 }
             },
             'execute command args': { 
                 topic: function(context) { 
-                    var f = function(arg) { 
-                            this.result.resolve(arg);
-                        },
-                        r = context.execute_command(f, ['arg']),
+                    var r = context.execute_command('passthru_args', ['arg']),
                         cb = this.callback;
                     r.then(
                         function(re) { cb(null, re); },
@@ -96,15 +92,12 @@ vows.describe('context')
                 },
                 'command returned args': function(err, re) { 
                     assert.ifError(err);
-                    assert.equal(re, 'arg');
+                    assert.equal(re.data, 'arg');
                 }
             },
             'execute command options': { 
                 topic: function(context) { 
-                    var f = function() { 
-                            this.result.resolve(this.options);
-                        },
-                        r = context.execute_command(f, [], 'options'),
+                    var r = context.execute_command('passthru_options', [], 'options'),
                         cb = this.callback;
                     r.then(
                         function(re) { cb(null, re); },
@@ -113,15 +106,13 @@ vows.describe('context')
                 },
                 'command returned options': function(err, re) { 
                     assert.ifError(err);
-                    assert.equal(re, 'options');
+                    assert.equal(re.data, 'options');
                 }
             },
             'execute command input': { 
                 topic: function(context) { 
-                    var f = function() { 
-                            this.result.resolve(this.input);
-                        },
-                        r = context.execute_command(f, [], null, defer.Deferred().resolve('input')),
+                    var r = context.execute_command('passthru_input', [], null, 
+                            defer.Deferred().resolve({data: 'input'})),
                         cb = this.callback;
                     r.then(
                         function(re) { cb(null, re); },
@@ -130,18 +121,15 @@ vows.describe('context')
                 },
                 'command returned input': function(err, re) { 
                     assert.ifError(err);
-                    assert.equal(re, 'input');
+                    assert.equal(re.data, 'input');
                 }
             },
             'execute chain': {
                 topic: function(context) { 
-                    var f = function(arg) { 
-                            this.result.resolve(this.input ? (this.input + ' ' + arg) : arg);
-                        },
-                        r = context.execute_chain({
-                            f1: { cmd: f, args: ['arg1'] },
-                            f2: { cmd: f, args: ['arg2'], input: 'f1' },
-                            f3: { cmd: f, args: ['arg3'], input: 'f2' }
+                    var r = context.execute_chain({
+                            f1: { cmd: 'append_to_input', args: ['arg1'] },
+                            f2: { cmd: 'append_to_input', args: ['arg2'], input: 'f1' },
+                            f3: { cmd: 'append_to_input', args: ['arg3'], input: 'f2' }
                         }),
                         cb = this.callback;
                     r.then(
@@ -151,7 +139,7 @@ vows.describe('context')
                 },
                 'chained output': function(err, ret) { 
                     assert.ifError(err);
-                    assert.equal(ret.f3, 'arg1 arg2 arg3');
+                    assert.equal(ret.f3.data, 'arg1 arg2 arg3');
                 }
             },
             'chain fail part': {
@@ -164,9 +152,9 @@ vows.describe('context')
                             }
                         },
                         r = context.execute_chain({
-                            f1: { cmd: f, args: ['arg1'] },
-                            f2: { cmd: f, args: ['fail'], input: 'f1' },
-                            f3: { cmd: f, args: ['arg3'], input: 'f2' }
+                            f1: { cmd: 'append_to_input', args: ['arg1'] },
+                            f2: { cmd: 'always_fail', input: 'f1' },
+                            f3: { cmd: 'append_to_input', args: ['arg3'], input: 'f2' }
                         }),
                         cb = this.callback;
                     r.then(
@@ -175,7 +163,8 @@ vows.describe('context')
                     );
                 },
                 'chained output': function(err, ret) { 
-                    assert.ok(err);
+                    assert.equal(err.f3.schema, 'error');
+                    assert.equal(err.f3.data.message, 'failed on input');
                     assert.equal(ret, null);
                 }
 
