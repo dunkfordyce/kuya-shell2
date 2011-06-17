@@ -3,30 +3,10 @@ var vows = require('vows'),
     context = require('../context'),
     events = require('events'),
     fs = require('fs'),
-    defer = require('../deferred');
+    defer = require('../deferred'),
+    test_commands = require('./support/commands').test_commands;
 
 function nullfunc() {};
-
-var test_commands = new context.CommandList({
-    truefunc: function() { 
-        this.result.resolve(true);
-    },
-    passthru_args: function(args) { 
-        this.result.resolve(args);
-    },
-    passthru_options: function() { 
-        this.result.resolve(this.options);
-    },
-    passthru_input: function() { 
-        this.result.resolve(this.input.data);
-    },
-    append_to_input: function(arg) { 
-        this.result.resolve(this.input ? (this.input.data +' '+arg) : arg);
-    },
-    always_fail: function(arg) { 
-        this.result.reject('fail!');
-    }
-});
 
 vows.describe('context')
     .addBatch({
@@ -139,7 +119,7 @@ vows.describe('context')
                 },
                 'chained output': function(err, ret) { 
                     assert.ifError(err);
-                    assert.equal(ret.f3.data, 'arg1 arg2 arg3');
+                    assert.equal(ret.data.f3.data, 'arg1 arg2 arg3');
                 }
             },
             'chain fail part': {
@@ -163,8 +143,8 @@ vows.describe('context')
                     );
                 },
                 'chained output': function(err, ret) { 
-                    assert.equal(err.f3.schema, 'error');
-                    assert.equal(err.f3.data.message, 'failed on input');
+                    assert.equal(err.data.f3.schema, 'error');
+                    assert.equal(err.data.f3.data.message, 'failed on input');
                     assert.equal(ret, null);
                 }
 

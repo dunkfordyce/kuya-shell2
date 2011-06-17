@@ -102,7 +102,7 @@ Context.prototype.execute_chain = function(chain, return_all) {
         r = defer.Deferred(),
         all_calls = {},
         used_output = {},
-        ret = {};
+        ret = {schema: 'callchain', data: {}};
 
     try { 
         _.each(chain, function(cmd, cmd_id) { 
@@ -125,7 +125,7 @@ Context.prototype.execute_chain = function(chain, return_all) {
         .always(function() { 
             _.each(all_calls, function(call, cmd_id) { 
                 if( return_all || !used_output[cmd_id] ) { 
-                    call.result.always(function(result) { ret[cmd_id] = result; });
+                    call.result.always(function(result) { ret.data[cmd_id] = result; });
                 }
             });
         })
