@@ -38,7 +38,7 @@ context.default_commands = require('./support/commands').test_commands;
 
 vows.describe('server-context')
     .addBatch({
-        'exectue': { 
+        'execute': { 
             'simple': send(
                 {datatype: 'command/call', data: {cmd: 'truefunc'}}, 
                 {datatype: 'command/result', data: true}
