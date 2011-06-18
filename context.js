@@ -2,10 +2,19 @@ var _ = require('underscore'),
     defer = require('./deferred'),
     sys = require('sys');
 
-function CommandNotFound(name) { 
-    this.name = name;
-};
+function CommandNotFound(command) { 
+    this.command = command;
+    this.message = 'Command Not Found'
+}
+CommandNotFound.prototype = Error.prototype;
 exports.CommandNotFound = CommandNotFound;
+
+function DataTypeError(message) {
+    this.message = message || '';
+}
+DataTypeError.prototype = Error.prototype;
+exports.DataTypeError = DataTypeError;
+
 
 function CommandList(initial) { 
     this.commands = initial || {};
@@ -45,7 +54,7 @@ Context.prototype._prepare_command = function(cmd, args, options, input) {
             options: options,
             input: input,
             result: defer.Deferred(),
-            schema: ''
+            datatype: 'command/result'
         },
         f = function() { 
             (c.input || defer.Deferred().resolve())
@@ -55,7 +64,6 @@ Context.prototype._prepare_command = function(cmd, args, options, input) {
                     try { 
                         ret = c.cmd.apply(c, args);
                     } catch(e) { 
-                        console.error(e.stack);
                         c.result.reject(e);
                         return;
                     }
@@ -71,10 +79,10 @@ Context.prototype._prepare_command = function(cmd, args, options, input) {
         };
 
     c.result.done(function(ret) { 
-        ret_promise.resolve({schema: c.schema, data: ret});
+        ret_promise.resolve({datatype: c.datatype, data: ret});
     });
     c.result.fail(function(ret) { 
-        ret_promise.reject({schema: 'error', data: ret});
+        ret_promise.reject({datatype: 'command/error', data: ret});
     });
 
     f.input = function(promise) { 
@@ -102,7 +110,9 @@ Context.prototype.execute_chain = function(chain, return_all) {
         r = defer.Deferred(),
         all_calls = {},
         used_output = {},
-        ret = {schema: 'callchain', data: {}};
+        ret = {datatype: 'commandchain/result', data: {}};
+
+    console.error('returnall', return_all);
 
     try { 
         _.each(chain, function(cmd, cmd_id) { 
@@ -115,7 +125,7 @@ Context.prototype.execute_chain = function(chain, return_all) {
     _.each(all_calls, function(call, cmd_id) {
         if( chain[cmd_id].input ) {
             call.input(all_calls[chain[cmd_id].input].result);
-            used_output[chain.input] = true;
+            used_output[chain[cmd_id].input] = true;
         }
     });
 
@@ -134,6 +144,26 @@ Context.prototype.execute_chain = function(chain, return_all) {
     ;
 
     return r.promise();
+};
+
+Context.prototype.execute = function(what) { 
+    if( !what.datatype ) { 
+        throw new DataTypeError('object doesnt contain a datatype!');
+    } else if( what.datatype == 'command/call' ) { 
+        var input = what.data.input ? defer.Deferred().resolve(what.data.input) : undefined;
+        return this.execute_command(
+            what.data.cmd, 
+            what.data.args, 
+            what.data.options, 
+            input
+        );
+    } else if( what.datatype == 'commandchain/call' ) { 
+        return this.execute_chain( 
+            what.data.chain,
+            what.data.returnall
+        );
+    }
+    throw new DataTypeError('dont know how to call "'+what.datatype+'"');
 };
 
 exports.Context = Context;

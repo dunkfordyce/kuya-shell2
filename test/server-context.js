@@ -2,103 +2,77 @@ var vows = require('vows'),
     assert = require('assert'),
     tobi = require('tobi'),
     app = require('../app').app,
-    context = require('../context');
+    context = require('../context'),
+    _ = require('underscore');
 
 app.listen(3000);
 var browser = tobi.createBrowser(3000, 'localhost');
+
+function send(msg, cb, statusCode) { 
+    statusCode = statusCode || 200;
+    var context = {
+        topic: function() { 
+            var self = this;
+            browser.post('/context/execute', {
+                body: JSON.stringify(msg),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }, function(res) { 
+                self.callback(null, res);
+            });
+        },
+        'check result': function(err, res) { 
+            assert.equal(statusCode, res.statusCode);
+            if( _.isFunction(cb) ) { 
+                cb(res.body, res);
+            } else {
+                assert.deepEqual(res.body, cb);
+            }
+        }
+    };
+    return context;
+};
 
 context.default_commands = require('./support/commands').test_commands;
 
 vows.describe('server-context')
     .addBatch({
         'exectue': { 
-            'simple': {
-                topic: function() { 
-                    browser.post('/context/execute', {
-                        body: JSON.stringify({cmd: 'truefunc'}),
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    }, this.callback);
-                },
-                'result': function(res, $) { 
-                    assert.equal(res.body.data, true);
-                }
-            },
-            'arguments': {
-                topic: function() { 
-                    browser.post('/context/execute', {
-                        body: JSON.stringify({cmd: 'passthru_args', args: ['arg']}),
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    }, this.callback);
-                },
-                'result': function(res, $) { 
-                    assert.equal(res.body.data, 'arg');
-                }
-            },
-            'options': {
-                topic: function() { 
-                    browser.post('/context/execute', {
-                        body: JSON.stringify({cmd: 'passthru_options', options: {opt1: 'opt1'}}),
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    }, this.callback);
-                },
-                'result': function(res, $) { 
-                    assert.equal(res.body.data.opt1, 'opt1');
-                }
-            },
-            'input': {
-                topic: function() { 
-                    browser.post('/context/execute', {
-                        body: JSON.stringify({cmd: 'passthru_input', input: {data: 'input'}}),
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    }, this.callback);
-                },
-                'result': function(res, $) { 
-                    assert.equal(res.body.data, 'input');
-                }
-            },
-            'fail': {
-                topic: function() { 
-                    browser.post('/context/execute', {
-                        body: JSON.stringify({cmd: 'always_fail'}),
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    }, this.callback);
-                },
-                'result': function(res, $) { 
-                    assert.equal(res.body.schema, 'error');
-                    assert.equal(res.body.data, 'fail!');
-                }
-            }
+            'simple': send(
+                {datatype: 'command/call', data: {cmd: 'truefunc'}}, 
+                {datatype: 'command/result', data: true}
+            ),
+            'arguments': send(
+                {datatype: 'command/call', data: {cmd: 'passthru_args', args: ['arg']}},
+                {datatype: 'command/result', data: 'arg'}
+            ),
+            'options': send(
+                {datatype: 'command/call', data: {cmd: 'passthru_options', options: {opt1: 'opt1'}}},
+                {datatype: 'command/result', data: {opt1: 'opt1'}}
+            ),
+            'input': send(
+                {datatype: 'command/call', data: {cmd: 'passthru_input', input: {data: 'input'}}},
+                {datatype: 'command/result', data: 'input'}
+            ),
+            'fail': send(
+                {datatype: 'command/call', data: {cmd: 'always_fail'}},
+                {datatype: 'command/error', data: 'fail!'}
+            ),
         },
         'chain': {
-            'simple': { 
-                topic: function() { 
-                    browser.post('/context/chain', {
-                        body: JSON.stringify({
-                            chain: {
-                                f1: { cmd: 'append_to_input', args: ['arg1'] },
-                                f2: { cmd: 'append_to_input', args: ['arg2'], input: 'f1' },
-                                f3: { cmd: 'append_to_input', args: ['arg3'], input: 'f2' }
-                            }
-                        }),
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    }, this.callback);
-                },
-                'result': function(res, $) { 
-                    assert.equal(res.body.data.f3.data, 'arg1 arg2 arg3');
-                }
-            }
+            'simple': send(
+                {datatype: 'commandchain/call', data: { 
+                    chain: {
+                        f1: { cmd: 'append_to_input', args: ['arg1'] },
+                        f2: { cmd: 'append_to_input', args: ['arg2'], input: 'f1' },
+                        f3: { cmd: 'append_to_input', args: ['arg3'], input: 'f2' }
+                    }
+                }},
+                {datatype: 'commandchain/result', data: { 
+                    f3: {datatype: 'command/result', data: 'arg1 arg2 arg3'}
+                }}
+            )
         }
     })
     .export(module)

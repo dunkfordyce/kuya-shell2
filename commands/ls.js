@@ -69,12 +69,21 @@ exports.ls = function() {
     defer.when.apply(null, ps).then(function() { 
         defer.when.apply(null, ps2).then(function() { 
             self.result.resolve({
-                schema: 'filelist',
+                datatype: 'filelist',
                 data: ret
             });
         });
     });
 };
+
+/*
+exports.ls.description = "list a directory";
+exports.ls.default_datatype = 'filelist';
+exports.ls.options = null;
+exports.ls.args = [
+    {type: ['path', 'pattern'], min: 0, max: null}
+];
+*/
 
 
 

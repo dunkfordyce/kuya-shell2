@@ -5,8 +5,14 @@ var express = require('express'),
 app.use(express.static(__dirname+'/public'));
 app.use(express.bodyParser());
 
+app.error(function(err, req, res, next) { 
+    res.send({
+        datatype: 'error',
+        data: err
+    }, 500);
+});
+
 app.post('/context/execute', context.execute);
-app.post('/context/chain', context.chain);
 
 exports.app = app;
 

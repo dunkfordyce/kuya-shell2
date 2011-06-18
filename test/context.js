@@ -117,9 +117,9 @@ vows.describe('context')
                         function(re) { cb(re, null); }
                     );
                 },
-                'chained output': function(err, ret) { 
+                'chained output': function(err, result) { 
                     assert.ifError(err);
-                    assert.equal(ret.data.f3.data, 'arg1 arg2 arg3');
+                    assert.equal(result.data.f3.data, 'arg1 arg2 arg3');
                 }
             },
             'chain fail part': {
@@ -142,10 +142,10 @@ vows.describe('context')
                         function(re) { cb(re, null); }
                     );
                 },
-                'chained output': function(err, ret) { 
-                    assert.equal(err.data.f3.schema, 'error');
+                'chained output': function(err, result) { 
+                    assert.equal(err.data.f3.datatype, 'command/error');
                     assert.equal(err.data.f3.data.message, 'failed on input');
-                    assert.equal(ret, null);
+                    assert.equal(result, null);
                 }
 
             }
