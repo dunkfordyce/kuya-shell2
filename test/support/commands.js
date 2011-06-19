@@ -19,5 +19,13 @@ exports.test_commands = new context.CommandList({
     },
     always_fail: function(arg) { 
         this.result.reject('fail!');
+    },
+    can_run_in_browser: function() { 
+        return true;
     }
 });
+
+exports.test_commands.commands.can_run_in_browser.meta = {
+    out_of_server: true
+};
+

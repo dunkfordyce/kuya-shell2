@@ -9,6 +9,16 @@ var type1 = {
     type2 = {
         returnthis: function(thing) { return this[thing]; }
     },
+    type_with_init = {
+        init: function() { 
+            this.inited = true;
+        }
+    },
+    type_with_init_args = {
+        init: function(arg) { 
+            this.arg = arg;
+        }
+    },
     default_inflater = { 
         'foo': true
     };
@@ -19,7 +29,9 @@ vows.describe('inflater')
         'simple': { 
             topic: new inflate.Inflater({
                 'type1': type1,
-                'type2': type2
+                'type2': type2,
+                'type_with_init': type_with_init,
+                'type_with_init_args': type_with_init_args
             }),
             'get': function(inflater) { 
                 assert.equal(inflater.get('type1'), type1);
@@ -30,7 +42,7 @@ vows.describe('inflater')
                 }, inflater.InflaterNotFound);
             },
             'inflate with type': function(inflater) { 
-                var obj = inflater.inflate({c: 1}, 'type1');
+                var obj = inflater.inflate({c: 1}, null, 'type1');
                 assert.equal(obj.__proto__, type1);
                 assert.equal(obj.a, true);
                 assert.equal(obj.b, false);
@@ -39,6 +51,14 @@ vows.describe('inflater')
             'inflate with dataType': function(inflater) { 
                 var obj = inflater.inflate({c: 1, datatype: 'type1'});
                 assert.equal(obj.__proto__, type1);
+            },
+            'inflate with init': function(inflater) { 
+                var obj = inflater.inflate({datatype: 'type_with_init'});
+                assert.equal(obj.inited, true);
+            },
+            'inflate with init args': function(inflater) { 
+                var obj = inflater.inflate({datatype: 'type_with_init_args'}, ['a']);
+                assert.equal(obj.arg, 'a');
             },
             'functions': function(inflater) { 
                 var obj = inflater.inflate({c: 1, datatype: 'type2'});

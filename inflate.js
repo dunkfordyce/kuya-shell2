@@ -17,8 +17,9 @@ Inflater.prototype.get = function(datatype) {
     }
     return inflater;
 };
-Inflater.prototype.inflate = function(obj, datatype) { 
+Inflater.prototype.inflate = function(obj, args, datatype) { 
     obj.__proto__ = this.get(datatype || obj.datatype);
+    if( obj.init ) { obj.__proto__.init.apply(obj, args); }
     return obj;
 };
 Inflater.prototype.extend = function(more) { 

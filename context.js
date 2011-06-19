@@ -1,6 +1,5 @@
 var _ = require('underscore'),
-    defer = require('./deferred'),
-    sys = require('sys');
+    defer = require('./deferred');
 
 function CommandNotFound(command) { 
     this.command = command;
@@ -30,6 +29,21 @@ CommandList.prototype.get = function(name) {
 };
 CommandList.prototype.extend = function(commands) { 
     _.extend(this.commands, commands);
+};
+CommandList.prototype.details = function() { 
+    var ret = {
+        datatype: 'commandlist/details',
+        data: {}
+    };   
+
+    _.each(this.commands, function(command, name) { 
+        ret.data[name] = _.clone(command.meta || {});
+        if( ret.data[name].out_of_server ) { 
+            ret.data[name].body = command.toString();
+        }
+    });
+
+    return ret;
 };
 
 exports.default_commands = new CommandList({
@@ -112,8 +126,6 @@ Context.prototype.execute_chain = function(chain, return_all) {
         used_output = {},
         ret = {datatype: 'commandchain/result', data: {}};
 
-    console.error('returnall', return_all);
-
     try { 
         _.each(chain, function(cmd, cmd_id) { 
             all_calls[cmd_id] = context.prepare_command(cmd.cmd, cmd.args, cmd.options);
@@ -146,24 +158,32 @@ Context.prototype.execute_chain = function(chain, return_all) {
     return r.promise();
 };
 
-Context.prototype.execute = function(what) { 
-    if( !what.datatype ) { 
-        throw new DataTypeError('object doesnt contain a datatype!');
-    } else if( what.datatype == 'command/call' ) { 
-        var input = what.data.input ? defer.Deferred().resolve(what.data.input) : undefined;
-        return this.execute_command(
-            what.data.cmd, 
-            what.data.args, 
-            what.data.options, 
-            input
-        );
-    } else if( what.datatype == 'commandchain/call' ) { 
-        return this.execute_chain( 
-            what.data.chain,
-            what.data.returnall
-        );
-    }
-    throw new DataTypeError('dont know how to call "'+what.datatype+'"');
-};
-
 exports.Context = Context;
+
+exports.inflaters = {
+    'command/call': {
+        init: function(ctx) { 
+            this.context = ctx || new Context();
+            this.data.input = this.data.input ? defer.Deferred().resolve(this.data.input) : undefined;
+        },
+        execute: function() { 
+            return this.context.execute_command(
+                this.data.cmd, 
+                this.data.args, 
+                this.data.options, 
+                this.data.input
+            );
+        }
+    },
+    'commandchain/call': {
+        init: function(ctx) { 
+            this.context = ctx || new Context();
+        },
+        execute: function() { 
+            return this.context.execute_chain( 
+                this.data.chain,
+                this.data.returnall
+            );
+        }
+    }
+};
