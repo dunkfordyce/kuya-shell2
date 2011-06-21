@@ -1,3 +1,3 @@
 an experimental shell 
 
-run server.js
+run app.js
