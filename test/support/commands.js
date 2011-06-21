@@ -20,12 +20,25 @@ exports.test_commands = new context.CommandList({
     always_fail: function(arg) { 
         this.result.reject('fail!');
     },
-    can_run_in_browser: function() { 
+    can_run_in_browser: context.describe({
+        out_of_server: true,
+    },function() { 
         return true;
-    }
+    }),
+    command_with_description: context.describe({
+        description: 'i am a function'
+    }, function() { 
+        this.result.resolve(true);
+    }),
+    command_with_options_meta: context.describe({
+        options: {
+            foo: {
+                type: 'string', 
+                description: 'i am a string option'
+            }
+        }
+    }, function() { 
+        this.result.resolve(this.options.foo);
+    }),
 });
-
-exports.test_commands.commands.can_run_in_browser.meta = {
-    out_of_server: true
-};
 

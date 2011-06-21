@@ -2,6 +2,8 @@ var vows = require('vows'),
     assert = require('assert'),
     inflate = require('../inflate');
 
+function SomeType() {};
+
 var type1 = {
         a: true,
         b: false
@@ -19,6 +21,11 @@ var type1 = {
             this.arg = arg;
         }
     },
+    type_that_modifies = {
+        init: function() { 
+            return new SomeType();
+        }
+    },
     default_inflater = { 
         'foo': true
     };
@@ -31,7 +38,8 @@ vows.describe('inflater')
                 'type1': type1,
                 'type2': type2,
                 'type_with_init': type_with_init,
-                'type_with_init_args': type_with_init_args
+                'type_with_init_args': type_with_init_args,
+                'type_that_modifies': type_that_modifies
             }),
             'get': function(inflater) { 
                 assert.equal(inflater.get('type1'), type1);
@@ -49,20 +57,24 @@ vows.describe('inflater')
                 assert.equal(obj.c, 1);
             },
             'inflate with dataType': function(inflater) { 
-                var obj = inflater.inflate({c: 1, datatype: 'type1'});
+                var obj = inflater.inflate({c: 1, $datatype: 'type1'});
                 assert.equal(obj.__proto__, type1);
             },
             'inflate with init': function(inflater) { 
-                var obj = inflater.inflate({datatype: 'type_with_init'});
+                var obj = inflater.inflate({$datatype: 'type_with_init'});
                 assert.equal(obj.inited, true);
             },
             'inflate with init args': function(inflater) { 
-                var obj = inflater.inflate({datatype: 'type_with_init_args'}, ['a']);
+                var obj = inflater.inflate({$datatype: 'type_with_init_args'}, ['a']);
                 assert.equal(obj.arg, 'a');
             },
             'functions': function(inflater) { 
-                var obj = inflater.inflate({c: 1, datatype: 'type2'});
+                var obj = inflater.inflate({c: 1, $datatype: 'type2'});
                 assert.equal(obj.returnthis('c'), 1);
+            },
+            'replace object': function(inflater) { 
+                var obj = inflater.inflate({c: 1, $datatype: 'type_that_modifies'});
+                assert.ok( obj instanceof SomeType );
             }
         },
         'default inflater': {

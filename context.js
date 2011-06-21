@@ -1,5 +1,6 @@
 var _ = require('underscore'),
-    defer = require('./deferred');
+    defer = require('./deferred'),
+    inflater = require('./inflate').default_inflater;
 
 function CommandNotFound(command) { 
     this.command = command;
@@ -15,10 +16,23 @@ DataTypeError.prototype = Error.prototype;
 exports.DataTypeError = DataTypeError;
 
 
+function RemoteCommand() {};
+exports.RemoteCommand = RemoteCommand;
+
+exports.describe = function(meta, f) { 
+    f.meta = meta;
+    return f;
+};
+
 function CommandList(initial) { 
-    this.commands = initial || {};
+    this.commands = {};
+    this.meta = {};
+    if( initial ) this.extend(initial);
     this.default_command = null;
 }
+CommandList.from_meta = function(metas) { 
+    return (new CommandList()).extend_meta(metas, RemoteCommand);
+};
 exports.CommandList = CommandList;
 CommandList.prototype.get = function(name) { 
     var cmd = this.commands[name] || this.default_command;
@@ -27,23 +41,35 @@ CommandList.prototype.get = function(name) {
     }
     return cmd;
 };
+CommandList.prototype.get_meta = function(name) { 
+    var meta = this.meta[name] || this.default_command;
+    if( !meta ) { 
+        throw new CommandNotFound(name);
+    }
+    return meta;
+};
+CommandList.prototype._build_meta = function(command, name) { 
+    var meta = command.meta || {};
+    this.meta[name] = meta;
+    meta.args = meta.args || command.length;
+};
 CommandList.prototype.extend = function(commands) { 
+    _.each(commands, this._build_meta, this);
     _.extend(this.commands, commands);
 };
-CommandList.prototype.details = function() { 
-    var ret = {
-        datatype: 'commandlist/details',
-        data: {}
-    };   
-
-    _.each(this.commands, function(command, name) { 
-        ret.data[name] = _.clone(command.meta || {});
-        if( ret.data[name].out_of_server ) { 
-            ret.data[name].body = command.toString();
-        }
+CommandList.prototype.extend_meta = function(metas, command) { 
+    var self = this;
+    _.each(metas, function(meta, name) { 
+        self.commands[name] = command;
+        self.meta[name] = meta;
     });
-
-    return ret;
+    return this;
+};
+CommandList.prototype.deflate = function() { 
+    return {
+        $datatype: 'commandlist',
+        data: this.meta
+    };   
 };
 
 exports.default_commands = new CommandList({
@@ -53,12 +79,27 @@ exports.default_commands = new CommandList({
 
 function Context(options) { 
     options = options || {};
+    this.id = options.id;
     this.path = options.path || process.cwd();
-    this.env = options.env || {
+    this.env = _.defaults(options.env || {}, {
         HOME: process.env.HOME
-    };
+    });
     this.commands = options.commands || exports.default_commands;
+    if( this.commands.$datatype ) { 
+        this.commands = inflater.inflate(this.commands);
+    }
 }
+Context.prototype.deflate = function() { 
+    return {
+        $datatype: 'context',
+        data: {
+            id: this.id,
+            path: this.path,
+            env: this.env,
+            commands: this.commands.deflate()
+        }
+    };
+};
 
 Context.prototype._prepare_command = function(cmd, args, options, input) { 
     var ret_promise = defer.Deferred(),
@@ -93,10 +134,10 @@ Context.prototype._prepare_command = function(cmd, args, options, input) {
         };
 
     c.result.done(function(ret) { 
-        ret_promise.resolve({datatype: c.datatype, data: ret});
+        ret_promise.resolve({$datatype: c.datatype, data: ret});
     });
     c.result.fail(function(ret) { 
-        ret_promise.reject({datatype: 'command/error', data: ret});
+        ret_promise.reject({$datatype: 'command/error', data: ret});
     });
 
     f.input = function(promise) { 
@@ -124,7 +165,7 @@ Context.prototype.execute_chain = function(chain, return_all) {
         r = defer.Deferred(),
         all_calls = {},
         used_output = {},
-        ret = {datatype: 'commandchain/result', data: {}};
+        ret = {$datatype: 'commandchain/result', data: {}};
 
     try { 
         _.each(chain, function(cmd, cmd_id) { 
@@ -161,6 +202,11 @@ Context.prototype.execute_chain = function(chain, return_all) {
 exports.Context = Context;
 
 exports.inflaters = {
+    'context': { 
+        init: function() { 
+            return new Context(this.data);
+        }
+    },
     'command/call': {
         init: function(ctx) { 
             this.context = ctx || new Context();
@@ -185,5 +231,12 @@ exports.inflaters = {
                 this.data.returnall
             );
         }
-    }
+    },
+    'commandlist': {
+        init: function() { 
+            return CommandList.from_meta(this.data);
+        }
+    }   
 };
+
+inflater.extend(exports.inflaters);

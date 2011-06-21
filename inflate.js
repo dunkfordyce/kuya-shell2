@@ -18,8 +18,12 @@ Inflater.prototype.get = function(datatype) {
     return inflater;
 };
 Inflater.prototype.inflate = function(obj, args, datatype) { 
-    obj.__proto__ = this.get(datatype || obj.datatype);
-    if( obj.init ) { obj.__proto__.init.apply(obj, args); }
+    var ret;
+    obj.__proto__ = this.get(datatype || obj.$datatype);
+    if( obj.init ) { 
+        ret = obj.__proto__.init.apply(obj, args);
+        if( ret !== undefined ) return ret;
+    }
     return obj;
 };
 Inflater.prototype.extend = function(more) { 
@@ -28,6 +32,7 @@ Inflater.prototype.extend = function(more) {
 };
 
 exports.Inflater = Inflater;
+exports.default_inflater = new Inflater();
 exports.InflaterNotFound = InflaterNotFound;
 
 

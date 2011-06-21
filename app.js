@@ -13,7 +13,7 @@ app.use(express.bodyParser());
 
 app.error(function(err, req, res, next) { 
     res.send({
-        datatype: 'error',
+        $datatype: 'error',
         data: err
     }, 200);
 });

@@ -2,19 +2,16 @@ var _ = require('underscore'),
     context = require('./context'),
     defer = require('./deferred'),
     inflate = require('./inflate'),
-    inflater = new inflate.Inflater(),
+    inflater = inflate.default_inflater,
     contexts = {};
 
 inflater.extend(context.inflaters);
 
 exports.create = function(req, res) { 
-    var ctx = new context.Context(),
-        id = _.uniqueId();
+    var id = _.uniqueId(),
+        ctx = new context.Context({id: id});
     contexts[id] = ctx;
-    res.send({
-        datatype: 'context/create',
-        data: {id: id}
-    });
+    res.send(ctx.deflate());
 };
 
 exports.load_context = function(req, res, next) { 
