@@ -4,11 +4,7 @@ var express = require('express'),
     app = express.createServer();
 
 app.use(express.static(__dirname+'/public'));
-app.use(browserify({require: {
-    inflate: __dirname+'/inflate.js',
-    deferred: __dirname+'/deferred.js',
-    _: 'underscore'
-}}));
+
 app.use(express.bodyParser());
 
 app.error(function(err, req, res, next) { 
@@ -18,10 +14,15 @@ app.error(function(err, req, res, next) {
     }, 200);
 });
 
+app.get ('/commands/', context.commands);
 app.post('/context/', context.create);
-app.all ('/context/:id/:op?', context.load_context);
-app.post('/context/:id/execute', context.execute);
-app.get ('/context/:id/commands', context.commands);
+app.post('/execute/', context.execute);
+
+app.use(browserify({
+    require: [
+        './client'
+    ]
+}));
 
 exports.app = app;
 

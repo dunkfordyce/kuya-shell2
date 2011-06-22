@@ -3,17 +3,25 @@ var _ = require('underscore'),
     defer = require('./deferred'),
     inflate = require('./inflate'),
     inflater = inflate.default_inflater,
+    default_commands = new context.CommandList({
+        ls: require('./commands/ls').ls,
+        select: require('./commands/select').select
+    }),
     contexts = {};
 
-inflater.extend(context.inflaters);
+exports.default_commands = default_commands;
+
+exports.commands = function(req, res) { 
+    return default_commands.deflate();
+};
 
 exports.create = function(req, res) { 
     var id = _.uniqueId(),
         ctx = new context.Context({id: id});
-    contexts[id] = ctx;
     res.send(ctx.deflate());
 };
 
+/*
 exports.load_context = function(req, res, next) { 
     req.context = contexts[req.params.id];
     if( !req.context ) { 
@@ -22,10 +30,12 @@ exports.load_context = function(req, res, next) {
         next();
     }
 };
+*/
 
 exports.execute = function(req, res) { 
-    var obj = inflater.inflate(req.body, [req.context]);
-    obj.execute().always(function(r) { res.send(r); });
+    var ctx = inflate(req.body.context),
+        command = inflate(req.body.command);
+    command.execute().always(function(r) { res.send(r); });
 };
 
 exports.commands = function(req, res) { 

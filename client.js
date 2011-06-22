@@ -2,6 +2,8 @@ var context = require('./context'),
     inflater = require('./inflate').default_inflater,
     $ = require('jquery-browserify');
 
+var local_context = new context.Context();
+
 $.ajaxSetup({dataType: 'json'});
 
 $.ajax('/context/', {

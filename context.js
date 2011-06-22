@@ -24,15 +24,34 @@ exports.describe = function(meta, f) {
     return f;
 };
 
+/*
+function ContextList() { 
+    this.contexts = {};
+}
+ContextList.prototype.add = function(context) { 
+    if( this.contexts[context.id] ) { 
+        throw new Error('context "'+context.id+'" already added to list');
+    }
+    this.contexts[context.id] = context;
+    return this;
+};
+ContextList.prototype.get = function(id) { 
+    return this.contexts[id];
+};
+ContextList.protoype.deflate = function() { 
+    
+    return {
+        $datatype: 'contextlist',
+        data: this.contexts
+};
+*/
+
 function CommandList(initial) { 
     this.commands = {};
     this.meta = {};
     if( initial ) this.extend(initial);
     this.default_command = null;
 }
-CommandList.from_meta = function(metas) { 
-    return (new CommandList()).extend_meta(metas, RemoteCommand);
-};
 exports.CommandList = CommandList;
 CommandList.prototype.get = function(name) { 
     var cmd = this.commands[name] || this.default_command;
@@ -54,42 +73,55 @@ CommandList.prototype._build_meta = function(command, name) {
     meta.args = meta.args || command.length;
 };
 CommandList.prototype.extend = function(commands) { 
+    _.each(commands, function(command, name) { 
+        console.log('got', name, command);
+        if( command.$datatype ) { commands[name] = inflater.inflate(command); }
+        console.log('after', name, command);
+    });
     _.each(commands, this._build_meta, this);
     _.extend(this.commands, commands);
+    return this;
 };
-CommandList.prototype.extend_meta = function(metas, command) { 
+CommandList.prototype.extend_meta = function(metas) { 
     var self = this;
     _.each(metas, function(meta, name) { 
-        self.commands[name] = command;
         self.meta[name] = meta;
     });
     return this;
 };
 CommandList.prototype.deflate = function() { 
+    var self = this,
+        commands = {};
+    _.each(this.commands, function(command, name) { 
+        commands[name] = { $datatype: 'command/remotecall' };
+    });
+
     return {
         $datatype: 'commandlist',
-        data: this.meta
+        data: {
+            meta: this.meta,
+            commands: commands
+        }
     };   
 };
-
-exports.default_commands = new CommandList({
-    ls: require('./commands/ls').ls,
-    select: require('./commands/select').select
-});
 
 function Context(options) { 
     options = options || {};
     this.id = options.id;
     this.path = options.path || process.cwd();
     this.env = _.defaults(options.env || {}, {
-        HOME: process.env.HOME
+        HOME: process.env ? process.env.HOME : null
     });
-    this.commands = options.commands || exports.default_commands;
-    if( this.commands.$datatype ) { 
-        this.commands = inflater.inflate(this.commands);
+    if( options.commands && options.commands.$datatype ) { 
+        this.commands = inflater.inflate(options.commands);
+    } else {
+        this.commands = options.commands || (new CommandList());
     }
+    this.remotes = [];
+    this.remotes_by_id = {};
 }
 Context.prototype.deflate = function() { 
+    console.log(this);
     return {
         $datatype: 'context',
         data: {
@@ -100,7 +132,9 @@ Context.prototype.deflate = function() {
         }
     };
 };
+Context.prototype.add_remote = function(context) { 
 
+};
 Context.prototype._prepare_command = function(cmd, args, options, input) { 
     var ret_promise = defer.Deferred(),
         c = {
@@ -234,9 +268,17 @@ exports.inflaters = {
     },
     'commandlist': {
         init: function() { 
-            return CommandList.from_meta(this.data);
+            return (new CommandList())
+                .extend(this.data.commands)
+                .extend_meta(this.data.meta)
+            ;
         }
-    }   
+    },
+    'command/remotecall': {
+        init: function() { 
+            return RemoteCommand;
+        }
+    },
 };
 
 inflater.extend(exports.inflaters);

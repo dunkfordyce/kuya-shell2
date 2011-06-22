@@ -4,7 +4,7 @@ function InflaterNotFound(type, message) {
     this.message = message || 'Inflater not found for "'+type+'"';
     this.type = type;
 }
-Inflater.prototype = Error.prototype;
+InflaterNotFound.prototype = Error.prototype;
 
 function Inflater(initial, default_inflater) { 
     this.inflaters = initial || {};

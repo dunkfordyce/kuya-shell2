@@ -30,19 +30,20 @@ vows.describe('context')
             },
             'deflated': { 
                 topic: test_commands.deflate(),
-                //'log': function(deflated) { console.log(deflated); },
+                'log': function(deflated) { console.log(deflated); },
                 'simple': function(deflated) { 
                     assert.equal(deflated.$datatype, 'commandlist');
-                    assert.ok(deflated.data.truefunc);
+                    assert.ok(deflated.data.meta.truefunc);
+                    assert.ok(deflated.data.commands.truefunc);
                 },
                 'got meta': function(deflated) { 
-                    assert.ok(deflated.data.can_run_in_browser.out_of_server);
+                    assert.ok(deflated.data.meta.can_run_in_browser.out_of_server);
                 },
                 'description': function(deflated) { 
-                    assert.ok(deflated.data.command_with_description.description);
+                    assert.ok(deflated.data.meta.command_with_description.description);
                 },
                 'options': function(deflated) { 
-                    assert.ok(deflated.data.command_with_options_meta.options);
+                    assert.ok(deflated.data.meta.command_with_options_meta.options);
                 }
             },
             'inflate details': {
@@ -56,6 +57,7 @@ vows.describe('context')
                     assert.deepEqual(command_list.deflate(), test_commands.deflate());
                 },
                 'functions are remote': function(command_list) { 
+                    console.log(command_list.commands);
                     assert.equal( command_list.get('truefunc'), context.RemoteCommand );
                 }
             }
