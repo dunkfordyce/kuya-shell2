@@ -17,7 +17,7 @@ exports.commands = function(req, res) {
 
 exports.create = function(req, res) { 
     var id = _.uniqueId(),
-        ctx = new context.Context({id: id});
+        ctx = new context.Context({id: id, commands: default_commands});
     res.send(ctx.deflate());
 };
 

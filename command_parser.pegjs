@@ -1,8 +1,14 @@
 start
-    = command+
+    = (shellcommand / command)+
+
+shellcommand 
+    = _ "!" command:shellarg+ command_end { return {type: 'shell', command: command}; } 
+
+shellarg 
+    = arg:String _ { return arg; }
 
 command 
-    = _ command:command_name command_end args:arguments? {return {command: command, args: args}; }
+    = _ command:command_name command_end args:arguments? {return {type: 'js', command: command, args: args}; }
 
 command_end
     = whitespace / EOF / ";"
@@ -33,10 +39,10 @@ argument_quoted
     = StringLiteral
 
 unqoted_string
-    = str:([a-z]+) { return str.join(''); }
+    = str:([a-zA-Z0-9_-]+) { return str.join(''); }
 
 not_whitespace
-    = !whitespace
+    = !(whitespace) 
 
 String
     = StringLiteral / unqoted_string
