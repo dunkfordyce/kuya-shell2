@@ -30,7 +30,7 @@ vows.describe('context')
             },
             'deflated': { 
                 topic: test_commands.deflate(),
-                'log': function(deflated) { console.log(deflated); },
+                //'log': function(deflated) { console.log(deflated); },
                 'simple': function(deflated) { 
                     assert.equal(deflated.$datatype, 'commandlist');
                     assert.ok(deflated.data.meta.truefunc);
@@ -57,18 +57,40 @@ vows.describe('context')
                     assert.deepEqual(command_list.deflate(), test_commands.deflate());
                 },
                 'functions are remote': function(command_list) { 
-                    console.log(command_list.commands);
                     assert.equal( command_list.get('truefunc'), context.RemoteCommand );
                 }
             }
         },
+        'Env': {
+            topic: new context.Env({foo: 'bar'}),
+            'get': function(env) { 
+                assert.ok(env.get('foo'));
+            },
+            'set': function(env) { 
+                env.set('newkey', 'newval');
+                assert.equal(env.get('newkey'), 'newval');
+            },
+            'extend': function(env) { 
+                env.extend({even: 'more'});
+                assert.equal(env.get('even'), 'more');
+            },
+            'deflate': function(env) { 
+                var deflated = env.deflate();
+                assert.equal(deflated.$datatype, 'env');
+                assert.ok(deflated.data.foo);
+            },
+            'inflate': function(env) { 
+                assert.deepEqual(inflater.inflate(env.deflate()).env, env.env);
+            }
+        },
         'Context': { 
             topic: new context.Context({
-                commands: test_commands
+                commands: test_commands,
+                env: {HOME: '/home/kuya'}
             }),
             'env': function(context) { 
                 assert.ok(context.env);
-                assert.ok(context.env.HOME);
+                assert.ok(context.env.get('HOME'));
             },
             'prepare command': function(context) { 
                 var r = context.prepare_command('truefunc');

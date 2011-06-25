@@ -2,6 +2,7 @@ var vows = require('vows'),
     assert = require('assert'),
     _ = require('underscore'),
     tobi = require('tobi'),
+    defer = require('../deferred'),
     app = require('../app').app,
     context = require('../context'),
     inflater = require('../inflate').default_inflater;
@@ -63,6 +64,83 @@ context.default_commands = require('./support/commands').test_commands;
 
 vows.describe('server-context')
     .addBatch({
+        'default_env': {
+            topic: function() { 
+                var self = this;
+                browser.get('/default_env', {}, function(res) { 
+                    self.callback(null, res); 
+                });
+            },
+            ok: function(err, res) { 
+                var env = inflater.inflate(res.body);
+                assert.ok(env);
+                assert.equal(env.get('home'), '/home/dunk');
+                assert.equal(env.get('cwd'), '/home/dunk');
+            }
+        },
+        'command_list': {
+            topic: function() { 
+                var self = this;
+                browser.get('/commands', {}, function(res) { 
+                    self.callback(null, res);
+                });
+            },
+            ok: function(err, res) { 
+                var cl = inflater.inflate(res.body);
+                console.log(cl);
+                assert.ok(cl);
+                assert.ok(cl instanceof context.CommandList);
+            }
+        }
+    })
+    .addBatch({
+        'full': { 
+            topic: function() { 
+                var self = this,
+                    done = defer.Deferred().done(function(ctx) { 
+                        self.callback(null, ctx);
+                    });
+                defer.when(
+                    (function() { 
+                        var p = defer.Deferred();
+                        browser.get('/commands', {}, function(r) { p.resolve(inflater.inflate(r.body)); });
+                        return p;
+                    })(),
+                    (function() { 
+                        var p = defer.Deferred();
+                        browser.get('/default_env', {}, function(r) { p.resolve(inflater.inflate(r.body)); });
+                        return p;
+                    })()
+                ).done(function(commands, env) { 
+                    done.resolve(new context.Context({
+                        env: env,
+                        commands: commands   
+                    }));
+                });
+            },
+            ok: function(ctx) {
+                assert.ok(ctx);
+                ctx.commands.extend({
+                    localfunc: context.describe({
+                       description: 'a local command'
+                    }, function localfunc() { 
+                        this.result.resolve('localfunc');
+                    })
+                });
+
+                ctx.execute_command('localfunc').then(function(r) { 
+                    console.log('ret', r);
+                });
+
+                ctx.execute_command('ls').then(function(r) { 
+                    console.log('ls ret', r);
+                });
+            }
+        }
+    })
+
+    /*
+    .addBatch({
         'execute': { 
             topic: get_context(),
             'simple': post('execute',
@@ -102,5 +180,6 @@ vows.describe('server-context')
             )
         }
     })
+    */
     .export(module)
 ;

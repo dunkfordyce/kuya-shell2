@@ -5,8 +5,9 @@ var vows = require('vows'),
 
 function test(input) { 
     return function() { 
+        console.log('input:', input); 
         var ret = parser.parse(input);
-        console.log('input:', input); console.log('output:', sys.inspect(ret, 0, null));
+        console.log('output:', sys.inspect(ret, 0, null));
     }
 }
 
@@ -27,7 +28,9 @@ vows.describe('command_parser')
         'option value': test('xyc -v b --"c and d"=z'),
         'equals inside option name': test('"xyc foo" -v b --"c and d=x"="thought youd fooled me"'),
         'shell': test('!foo'),
-        'shell more args': test('!foo zxy abc "ef gh"')
+        'shell more args': test('!foo zxy abc "ef gh"'),
+        'env override': test('envvar=123 foo arg'),
+        'env override more': test('envvar=123 env2="a b c" foo arg'),
     })
     .export(module)
 ;

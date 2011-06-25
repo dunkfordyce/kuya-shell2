@@ -1,14 +1,54 @@
 start
-    = (shellcommand / command)+
+    = command+
+
+command
+    = env:envoverrides _ command:(shellcommand / jscommand) 
+    { 
+        var r = {command: command};
+        if( env ) { 
+            r.env = env;
+        }
+        return r;
+    }
+
+envoverrides
+    = envs:envoverride* 
+    {
+        if( !envs.length ) { return undefined; }
+        var r = {};
+        envs.forEach(function(env) { 
+            r[env.key] = env.val;
+        });
+        return r;
+    }
+
+envoverride
+    = key:String "=" val:String whitespace 
+    { 
+        return {key: key, val: val}; 
+    }
 
 shellcommand 
-    = _ "!" command:shellarg+ command_end { return {type: 'shell', command: command}; } 
+    = _ "!" command:shellarg args:shellarg* command_end 
+    { 
+        var r = {type: 'shell', command: command};
+        if( args.length ) { 
+            r.args = args;
+        }
+        return r;
+    } 
 
 shellarg 
-    = arg:String _ { return arg; }
+    = arg:String _ 
+    { 
+        return arg; 
+    }
 
-command 
-    = _ command:command_name command_end args:arguments? {return {type: 'js', command: command, args: args}; }
+jscommand 
+    = _ command:command_name command_end args:arguments? 
+    {
+        return {type: 'js', command: command, args: args}; 
+    }
 
 command_end
     = whitespace / EOF / ";"
@@ -17,11 +57,20 @@ command_name
     = command:String 
 
 arguments
-    = args:((option / argument)*) (EOF / ";") {return args;}
+    = args:((option / argument)*) (EOF / ";") 
+    { 
+        return args.length ? args : undefined; 
+    }
 
 option
     = ("--" / "-") option:(String) optionarg:option_arg? _
-    { return {option: option, arg: optionarg}; }
+    { 
+        var r = {option: option};
+        if( optionarg ) { 
+            r.arg = optionarg;
+        }
+        return r;
+    }
 
 option_arg
     = "=" arg:String { return arg; }
@@ -39,7 +88,10 @@ argument_quoted
     = StringLiteral
 
 unqoted_string
-    = str:([a-zA-Z0-9_-]+) { return str.join(''); }
+    = str:([a-zA-Z0-9_-]+) 
+    { 
+        return str.join(''); 
+    }
 
 not_whitespace
     = !(whitespace) 
@@ -48,15 +100,18 @@ String
     = StringLiteral / unqoted_string
 
 StringLiteral "string"
-  = parts:('"' DoubleStringCharacters? '"' / "'" SingleStringCharacters? "'") {
-      return parts[1];
+    = parts:('"' DoubleStringCharacters? '"' / "'" SingleStringCharacters? "'") 
+    {
+        return parts[1];
     }
 
 DoubleStringCharacters
-  = chars:DoubleStringCharacter+ { return chars.join(""); }
+    = chars:DoubleStringCharacter+ 
+    { return chars.join(""); }
 
 SingleStringCharacters
-  = chars:SingleStringCharacter+ { return chars.join(""); }
+    = chars:SingleStringCharacter+ 
+    { return chars.join(""); }
 
 DoubleStringCharacter
   = !('"' / "\\" / LineTerminator) char_:SourceCharacter { return char_; }

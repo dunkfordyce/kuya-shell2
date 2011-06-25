@@ -46,6 +46,28 @@ ContextList.protoype.deflate = function() {
 };
 */
 
+function Env(initial) { 
+    this.env = initial || {};
+}
+exports.Env = Env;
+Env.prototype.deflate = function() { 
+    return {
+        $datatype: 'env',
+        data: this.env
+    };
+};
+Env.prototype.get = function(key) { 
+    return this.env[key];
+};
+Env.prototype.set = function(key, val) { 
+    this.env[key] = val;
+    return this;
+};
+Env.prototype.extend = function(more) { 
+    _.extend(this.env, more);
+    return this;
+};
+
 function CommandList(initial) { 
     this.commands = {};
     this.meta = {};
@@ -74,9 +96,7 @@ CommandList.prototype._build_meta = function(command, name) {
 };
 CommandList.prototype.extend = function(commands) { 
     _.each(commands, function(command, name) { 
-        console.log('got', name, command);
         if( command.$datatype ) { commands[name] = inflater.inflate(command); }
-        console.log('after', name, command);
     });
     _.each(commands, this._build_meta, this);
     _.extend(this.commands, commands);
@@ -108,26 +128,25 @@ CommandList.prototype.deflate = function() {
 function Context(options) { 
     options = options || {};
     this.id = options.id;
-    this.path = options.path || process.cwd();
-    this.env = _.defaults(options.env || {}, {
-        HOME: process.env ? process.env.HOME : null
-    });
+    if( options.env ) { 
+        if( options.env.$datatype ) { this.env = inflater.inflate(options.env); }
+        else if( options.env instanceof Env ) { this.env = options.env; }
+        else { this.env = new Env(options.env); }
+    } else {
+        this.env = new Env();
+    }
     if( options.commands && options.commands.$datatype ) { 
         this.commands = inflater.inflate(options.commands);
     } else {
         this.commands = options.commands || (new CommandList());
     }
-    this.remotes = [];
-    this.remotes_by_id = {};
 }
 Context.prototype.deflate = function() { 
-    console.log(this);
     return {
         $datatype: 'context',
         data: {
             id: this.id,
-            path: this.path,
-            env: this.env,
+            env: this.env.deflate(),
             commands: this.commands.deflate()
         }
     };
@@ -279,6 +298,11 @@ exports.inflaters = {
             return RemoteCommand;
         }
     },
+    'env': {
+        init: function() { 
+            return (new Env(this.data));
+        }
+    }
 };
 
 inflater.extend(exports.inflaters);

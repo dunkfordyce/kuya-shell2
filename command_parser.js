@@ -38,6 +38,9 @@ module.exports = (function(){
         "command": parse_command,
         "command_end": parse_command_end,
         "command_name": parse_command_name,
+        "envoverride": parse_envoverride,
+        "envoverrides": parse_envoverrides,
+        "jscommand": parse_jscommand,
         "not_whitespace": parse_not_whitespace,
         "option": parse_option,
         "option_arg": parse_option_arg,
@@ -125,36 +128,167 @@ module.exports = (function(){
         }
         
         
-        var result3 = parse_shellcommand();
-        if (result3 !== null) {
-          var result1 = result3;
-        } else {
-          var result2 = parse_command();
-          if (result2 !== null) {
-            var result1 = result2;
-          } else {
-            var result1 = null;;
-          };
-        }
+        var result1 = parse_command();
         if (result1 !== null) {
           var result0 = [];
           while (result1 !== null) {
             result0.push(result1);
-            var result3 = parse_shellcommand();
-            if (result3 !== null) {
-              var result1 = result3;
-            } else {
-              var result2 = parse_command();
-              if (result2 !== null) {
-                var result1 = result2;
-              } else {
-                var result1 = null;;
-              };
-            }
+            var result1 = parse_command();
           }
         } else {
           var result0 = null;
         }
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
+      function parse_command() {
+        var cacheKey = 'command@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var savedPos0 = pos;
+        var result2 = parse_envoverrides();
+        if (result2 !== null) {
+          var result3 = parse__();
+          if (result3 !== null) {
+            var result6 = parse_shellcommand();
+            if (result6 !== null) {
+              var result4 = result6;
+            } else {
+              var result5 = parse_jscommand();
+              if (result5 !== null) {
+                var result4 = result5;
+              } else {
+                var result4 = null;;
+              };
+            }
+            if (result4 !== null) {
+              var result1 = [result2, result3, result4];
+            } else {
+              var result1 = null;
+              pos = savedPos0;
+            }
+          } else {
+            var result1 = null;
+            pos = savedPos0;
+          }
+        } else {
+          var result1 = null;
+          pos = savedPos0;
+        }
+        var result0 = result1 !== null
+          ? (function(env, command) { 
+                  var r = {command: command};
+                  if( env ) { 
+                      r.env = env;
+                  }
+                  return r;
+              })(result1[0], result1[2])
+          : null;
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
+      function parse_envoverrides() {
+        var cacheKey = 'envoverrides@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var result1 = [];
+        var result2 = parse_envoverride();
+        while (result2 !== null) {
+          result1.push(result2);
+          var result2 = parse_envoverride();
+        }
+        var result0 = result1 !== null
+          ? (function(envs) {
+                  if( !envs.length ) { return undefined; }
+                  var r = {};
+                  envs.forEach(function(env) { 
+                      r[env.key] = env.val;
+                  });
+                  return r;
+              })(result1)
+          : null;
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
+      function parse_envoverride() {
+        var cacheKey = 'envoverride@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var savedPos0 = pos;
+        var result2 = parse_String();
+        if (result2 !== null) {
+          if (input.substr(pos, 1) === "=") {
+            var result3 = "=";
+            pos += 1;
+          } else {
+            var result3 = null;
+            if (reportMatchFailures) {
+              matchFailed("\"=\"");
+            }
+          }
+          if (result3 !== null) {
+            var result4 = parse_String();
+            if (result4 !== null) {
+              var result5 = parse_whitespace();
+              if (result5 !== null) {
+                var result1 = [result2, result3, result4, result5];
+              } else {
+                var result1 = null;
+                pos = savedPos0;
+              }
+            } else {
+              var result1 = null;
+              pos = savedPos0;
+            }
+          } else {
+            var result1 = null;
+            pos = savedPos0;
+          }
+        } else {
+          var result1 = null;
+          pos = savedPos0;
+        }
+        var result0 = result1 !== null
+          ? (function(key, val) { 
+                  return {key: key, val: val}; 
+              })(result1[0], result1[2])
+          : null;
         
         
         
@@ -187,20 +321,22 @@ module.exports = (function(){
             }
           }
           if (result3 !== null) {
-            var result6 = parse_shellarg();
-            if (result6 !== null) {
-              var result4 = [];
-              while (result6 !== null) {
-                result4.push(result6);
-                var result6 = parse_shellarg();
-              }
-            } else {
-              var result4 = null;
-            }
+            var result4 = parse_shellarg();
             if (result4 !== null) {
-              var result5 = parse_command_end();
+              var result5 = [];
+              var result7 = parse_shellarg();
+              while (result7 !== null) {
+                result5.push(result7);
+                var result7 = parse_shellarg();
+              }
               if (result5 !== null) {
-                var result1 = [result2, result3, result4, result5];
+                var result6 = parse_command_end();
+                if (result6 !== null) {
+                  var result1 = [result2, result3, result4, result5, result6];
+                } else {
+                  var result1 = null;
+                  pos = savedPos0;
+                }
               } else {
                 var result1 = null;
                 pos = savedPos0;
@@ -218,7 +354,13 @@ module.exports = (function(){
           pos = savedPos0;
         }
         var result0 = result1 !== null
-          ? (function(command) { return {type: 'shell', command: command}; })(result1[2])
+          ? (function(command, args) { 
+                  var r = {type: 'shell', command: command};
+                  if( args.length ) { 
+                      r.args = args;
+                  }
+                  return r;
+              })(result1[2], result1[3])
           : null;
         
         
@@ -254,7 +396,9 @@ module.exports = (function(){
           pos = savedPos0;
         }
         var result0 = result1 !== null
-          ? (function(arg) { return arg; })(result1[0])
+          ? (function(arg) { 
+                  return arg; 
+              })(result1[0])
           : null;
         
         
@@ -266,8 +410,8 @@ module.exports = (function(){
         return result0;
       }
       
-      function parse_command() {
-        var cacheKey = 'command@' + pos;
+      function parse_jscommand() {
+        var cacheKey = 'jscommand@' + pos;
         var cachedResult = cache[cacheKey];
         if (cachedResult) {
           pos = cachedResult.nextPos;
@@ -303,7 +447,9 @@ module.exports = (function(){
           pos = savedPos0;
         }
         var result0 = result1 !== null
-          ? (function(command, args) {return {type: 'js', command: command, args: args}; })(result1[1], result1[3])
+          ? (function(command, args) {
+                  return {type: 'js', command: command, args: args}; 
+              })(result1[1], result1[3])
           : null;
         
         
@@ -445,7 +591,9 @@ module.exports = (function(){
           pos = savedPos0;
         }
         var result0 = result1 !== null
-          ? (function(args) {return args;})(result1[0])
+          ? (function(args) { 
+                  return args.length ? args : undefined; 
+              })(result1[0])
           : null;
         
         
@@ -520,7 +668,13 @@ module.exports = (function(){
           pos = savedPos0;
         }
         var result0 = result1 !== null
-          ? (function(option, optionarg) { return {option: option, arg: optionarg}; })(result1[1], result1[2])
+          ? (function(option, optionarg) { 
+                  var r = {option: option};
+                  if( optionarg ) { 
+                      r.arg = optionarg;
+                  }
+                  return r;
+              })(result1[1], result1[2])
           : null;
         
         
@@ -670,7 +824,9 @@ module.exports = (function(){
           var result1 = null;
         }
         var result0 = result1 !== null
-          ? (function(str) { return str.join(''); })(result1)
+          ? (function(str) { 
+                  return str.join(''); 
+              })(result1)
           : null;
         
         
@@ -837,7 +993,7 @@ module.exports = (function(){
         }
         var result0 = result1 !== null
           ? (function(parts) {
-                return parts[1];
+                  return parts[1];
               })(result1)
           : null;
         reportMatchFailures = savedReportMatchFailures;

@@ -32,7 +32,13 @@ Inflater.prototype.extend = function(more) {
 };
 
 exports.Inflater = Inflater;
-exports.default_inflater = new Inflater();
+exports.default_inflater = new Inflater({
+    'error': {
+        init: function() { 
+            console.error(this.data);
+        }
+    }
+});
 exports.InflaterNotFound = InflaterNotFound;
 
 

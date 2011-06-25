@@ -7,12 +7,19 @@ var _ = require('underscore'),
         ls: require('./commands/ls').ls,
         select: require('./commands/select').select
     }),
+    default_env = new context.Env({
+        home: process.env.HOME,
+        cwd: process.env.HOME
+    }),
     contexts = {};
 
 exports.default_commands = default_commands;
 
+exports.default_env = function(req, res) { 
+    res.send(default_env.deflate());
+};
 exports.commands = function(req, res) { 
-    return default_commands.deflate();
+    res.send(default_commands.deflate());
 };
 
 exports.create = function(req, res) { 
@@ -30,7 +37,6 @@ exports.load_context = function(req, res, next) {
         next();
     }
 };
-*/
 
 exports.execute = function(req, res) { 
     var ctx = inflate(req.body.context),
@@ -41,3 +47,4 @@ exports.execute = function(req, res) {
 exports.commands = function(req, res) { 
     res.send(req.context.commands.details());
 };
+*/

@@ -14,9 +14,10 @@ app.error(function(err, req, res, next) {
     }, 200);
 });
 
-app.get ('/commands/', context.commands);
-app.post('/context/', context.create);
-app.post('/execute/', context.execute);
+app.get('/default_env', context.default_env);
+app.get ('/commands', context.commands);
+//app.post('/context/', context.create);
+//app.post('/execute/', context.execute);
 
 app.use(browserify({
     require: [
