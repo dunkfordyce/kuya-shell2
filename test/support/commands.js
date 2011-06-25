@@ -1,7 +1,7 @@
+var command_list = require('../../command_list'),
+    describe = command_list.describe;
 
-var context = require('../../context');
-
-exports.test_commands = new context.CommandList({
+exports.test_commands = new command_list.CommandList({
     truefunc: function() { 
         this.result.resolve(true);
     },
@@ -20,17 +20,17 @@ exports.test_commands = new context.CommandList({
     always_fail: function(arg) { 
         this.result.reject('fail!');
     },
-    can_run_in_browser: context.describe({
+    can_run_in_browser: describe({
         out_of_server: true,
     },function() { 
         return true;
     }),
-    command_with_description: context.describe({
+    command_with_description: describe({
         description: 'i am a function'
     }, function() { 
         this.result.resolve(true);
     }),
-    command_with_options_meta: context.describe({
+    command_with_options_meta: describe({
         options: {
             foo: {
                 type: 'string', 

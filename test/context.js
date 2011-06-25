@@ -1,4 +1,5 @@
-var vows = require('vows'),
+var sys = require('sys'),
+    vows = require('vows'),
     assert = require('assert'),
     context = require('../context'),
     events = require('events'),
@@ -11,78 +12,6 @@ function nullfunc() {};
 
 vows.describe('context')
     .addBatch({
-        'CommandList': {
-            topic: new context.CommandList({
-                testfunc1: nullfunc
-            }),
-            'get': function(command_list) { 
-                assert.equal(command_list.get('testfunc1'), nullfunc);
-            },
-            'get missing': function(command_list) { 
-                assert.throws(function() { 
-                    command_list.get('i dont exist');
-                }, context.CommandNotFound);
-            },
-            'extend': function(command_list) { 
-                var testfunc2 = function() {};
-                command_list.extend({testfunc2: testfunc2});
-                assert.equal(command_list.get('testfunc2'), testfunc2);
-            },
-            'deflated': { 
-                topic: test_commands.deflate(),
-                //'log': function(deflated) { console.log(deflated); },
-                'simple': function(deflated) { 
-                    assert.equal(deflated.$datatype, 'commandlist');
-                    assert.ok(deflated.data.meta.truefunc);
-                    assert.ok(deflated.data.commands.truefunc);
-                },
-                'got meta': function(deflated) { 
-                    assert.ok(deflated.data.meta.can_run_in_browser.out_of_server);
-                },
-                'description': function(deflated) { 
-                    assert.ok(deflated.data.meta.command_with_description.description);
-                },
-                'options': function(deflated) { 
-                    assert.ok(deflated.data.meta.command_with_options_meta.options);
-                }
-            },
-            'inflate details': {
-                topic: inflater.inflate(test_commands.deflate()),
-                //log: function(details) { console.log(arguments); },
-                'simple': function(command_list) { 
-                    assert.ok(command_list instanceof context.CommandList);
-                },
-                'meta equal': function(command_list) { 
-                    assert.ok( test_commands !== command_list );
-                    assert.deepEqual(command_list.deflate(), test_commands.deflate());
-                },
-                'functions are remote': function(command_list) { 
-                    assert.equal( command_list.get('truefunc'), context.RemoteCommand );
-                }
-            }
-        },
-        'Env': {
-            topic: new context.Env({foo: 'bar'}),
-            'get': function(env) { 
-                assert.ok(env.get('foo'));
-            },
-            'set': function(env) { 
-                env.set('newkey', 'newval');
-                assert.equal(env.get('newkey'), 'newval');
-            },
-            'extend': function(env) { 
-                env.extend({even: 'more'});
-                assert.equal(env.get('even'), 'more');
-            },
-            'deflate': function(env) { 
-                var deflated = env.deflate();
-                assert.equal(deflated.$datatype, 'env');
-                assert.ok(deflated.data.foo);
-            },
-            'inflate': function(env) { 
-                assert.deepEqual(inflater.inflate(env.deflate()).env, env.env);
-            }
-        },
         'Context': { 
             topic: new context.Context({
                 commands: test_commands,
@@ -92,6 +21,7 @@ vows.describe('context')
                 assert.ok(context.env);
                 assert.ok(context.env.get('HOME'));
             },
+            /*
             'prepare command': function(context) { 
                 var r = context.prepare_command('truefunc');
                 assert.isFunction( r );
@@ -107,15 +37,19 @@ vows.describe('context')
                     r = context.prepare_command(f);
                 assert.equal(f, r.cmd);
             },
+            */
             'deflate': function(context) { 
                 assert.ok(context.deflate());
                 assert.equal(context.deflate().$datatype, 'context');
+                console.log(sys.inspect(context.deflate(), 0, null));
             },
             'inflate': function(context) { 
+                //console.log(context.deflate());
                 var new_context = inflater.inflate(context.deflate());
                 assert.equal(new_context.path, context.path);
                 assert.deepEqual(new_context.deflate(), context.deflate());
             },
+            /*
             'execute command': {
                 topic: function(context) { 
                     var r = context.execute_command('truefunc'),
@@ -218,6 +152,7 @@ vows.describe('context')
                 }
 
             }
+            */
         }
     })
     .export(module)
