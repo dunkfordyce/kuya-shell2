@@ -5,9 +5,9 @@ var vows = require('vows'),
 
 function test(input) { 
     return function() { 
-        console.log('input:', input); 
+        //console.log('input:', input); 
         var ret = parser.parse(input);
-        console.log('output:', sys.inspect(ret, 0, null));
+        //console.log('output:', sys.inspect(ret, 0, null));
     }
 }
 

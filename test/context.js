@@ -7,6 +7,7 @@ var sys = require('sys'),
     defer = require('../deferred'),
     test_commands = require('./support/commands').test_commands,
     env = require('../env'),
+    remote_command = require('../remote_command_jquery'),
     O = require('kuya-O');
 
 function nullfunc() {};
@@ -47,7 +48,14 @@ vows.describe('context')
                 assert.ok(O.instanceOf(new_context, context.Context));
                 assert.ok(O.instanceOf(new_env, env.Env));
                 assert.ok(O.instanceOf(new_context.env, env.Env));
-                assert.deepEqual(O.deflate(new_context), O.deflate(ctx));
+                assert.ok(O.deflate(new_context), O.deflate(ctx));
+            },
+            'remote': function(ctx) { 
+                var remote_context = O.inflate(O.deflate(ctx, {mode: 'remote'}));
+                console.error(sys.inspect(remote_context, true, null));
+                remote_context.execute_command('truefunc').always(function(ret) { 
+                    console.error('ret', ret.data.message, ret.data.stack);
+                });
             },
             'execute command': {
                 topic: function(context) { 

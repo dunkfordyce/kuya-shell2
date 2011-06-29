@@ -4,8 +4,10 @@ var vows = require('vows'),
     tobi = require('tobi'),
     defer = require('../deferred'),
     app = require('../app').app,
+    env = require('../env'),
     context = require('../context'),
     command_list = require('../command_list'),
+    remote_command = require('../remote_command_jquery'),
     O = require('kuya-O');
 
 app.listen(3000);
@@ -54,9 +56,10 @@ function get(cmd, cb) {
 
 function get_context() {
     return function() {
+        console.log('getting context');
         var self = this;
-        browser.post('/context/', {}, function(res) { 
-            self.callback(null, inflater.inflate(res.body));
+        browser.get('/context/new', {}, function(res) { 
+            self.callback(null, O.inflate(res.body));
         });
     }
 }
@@ -65,6 +68,21 @@ context.default_commands = require('./support/commands').test_commands;
 
 vows.describe('server-context')
     .addBatch({
+        'context simple' : { 
+            topic: get_context(),
+            'simple': function(ctx) { 
+                console.log(ctx);
+                assert.ok( O.instanceOf(ctx, context.Context) );
+                assert.ok( O.instanceOf(ctx.env, env.Env) );
+                assert.ok( O.instanceOf(ctx.commands, command_list.CommandList) );
+            },
+            'execute': function(ctx) { 
+                ctx.execute_command('ls').always(function(ret) { 
+                    console.error('ret', ret);
+                });
+            }
+         }
+
         /*
         'default_env': {
             topic: function() { 
@@ -80,7 +98,6 @@ vows.describe('server-context')
                 assert.equal(env.get('cwd'), '/home/dunk');
             }
         },
-        */
         'command_list': {
             topic: function() { 
                 var self = this;
@@ -94,6 +111,7 @@ vows.describe('server-context')
                 assert.ok( O.instanceOf(cl, command_list.CommandList) );
             }
         }
+        */
     })
     /*
     .addBatch({

@@ -14,16 +14,17 @@ app.error(function(err, req, res, next) {
     }, 200);
 });
 
-//app.get('/default_env', context.default_env);
-app.get ('/commands', context.commands);
-//app.post('/context/', context.create);
-//app.post('/execute/', context.execute);
+app.get ('/context/new', context.create);
+app.all ('/context/:id/*', context.load_context);
+app.post('/context/:id/execute', context.execute);
 
+/*
 app.use(browserify({
     require: [
         './client'
     ]
 }));
+*/
 
 exports.app = app;
 

@@ -8,9 +8,8 @@ var context_c = 0;
 
 
 var Context = {
-    $type: 'context',
     $deflate: {
-        id: 'context'
+        id: 'Context'
     },
 
     default_commands: null,

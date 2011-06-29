@@ -1,5 +1,7 @@
 var _ = require('underscore'),
-    O = require('kuya-O');
+    O = require('kuya-O'),
+    os = require('os'),
+    hostname = os.hostname();
 
 exports.describe = function(meta, f) { 
     f.meta = meta;
@@ -16,14 +18,14 @@ var CommandList = {
     $deflate: { 
         id: 'CommandList',
         deflater: function(obj, ctx) { 
-            if( !ctx.mode || ctx.mode != 'remote' ) { 
+            if( ctx.mode != 'remote' ) { 
                 return O.default_deflate(obj, ctx);
             };
             var commands = {};
             
             _.each(obj.commands, function(o, n) { 
                 commands[n] = _.clone(o);
-                commands[n].func = 'remote';
+                commands[n].func = {$inflate: 'RemoteCommand', host: hostname};
             });
 
             return {

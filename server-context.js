@@ -4,34 +4,30 @@ var _ = require('underscore'),
     command_list = require('./command_list'),
     env = require('./env'),
     defer = require('./deferred'),
-    default_commands = command_list.CommandList.create({
+    default_commands = {
         ls: require('./commands/ls').ls,
         select: require('./commands/select').select
-    }),
-    default_env = env.Env.create({
+    },
+    default_env = {
         home: process.env.HOME,
         cwd: process.env.HOME
-    }),
+    },
     contexts = {};
 
 exports.default_commands = default_commands;
 
-exports.commands = function(req, res) { 
-    var r = O.deflate(default_commands, {mode: 'remote'});
-    res.send(r);
-};
 
-
-/*
 exports.create = function(req, res) { 
+    console.log('doing create');
     var id = _.uniqueId(),
-        ctx = new context.Context({id: id, commands: default_commands});
-    res.send(ctx.deflate());
+        ctx = context.Context.create({id: id, commands: default_commands, env: default_env}),
+        data = O.deflate(ctx, {mode: 'remote'}); 
+    //console.log('sending', data);
+    res.send(data);
 };
-*/
 
-/*
 exports.load_context = function(req, res, next) { 
+    console.log('load context');
     req.context = contexts[req.params.id];
     if( !req.context ) { 
         next(new Error("cant find context"));
@@ -45,8 +41,3 @@ exports.execute = function(req, res) {
         command = inflate(req.body.command);
     command.execute().always(function(r) { res.send(r); });
 };
-
-exports.commands = function(req, res) { 
-    res.send(req.context.commands.details());
-};
-*/
