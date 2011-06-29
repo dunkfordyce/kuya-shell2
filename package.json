@@ -8,8 +8,9 @@
     "express-resource": "*",
     "glob": "*",
     "JSONSelect": "*",
-    "underscore": "*"
-    "socket.io": "*"
+    "underscore": "*",
+    "socket.io": "*",
+    "kuya-O': "*"
   },
   "keywords": ["webby-cli", "shell"],
   "repository": "git://github.com/dunkfordyce/kuya-shell2"
