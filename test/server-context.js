@@ -11,7 +11,7 @@ var vows = require('vows'),
     O = require('kuya-O');
 
 app.listen(3000);
-var browser = tobi.createBrowser(3000, 'localhost');
+var browser = tobi.createBrowser(3000, 'localhost', {external: true});
 
 function send(command, method, msg, cb, statusCode) { 
     statusCode = statusCode || 200;
@@ -81,7 +81,18 @@ vows.describe('server-context')
                     console.error('ret', ret);
                 });
             }
-         }
+         },
+        'get index': {
+            topic: function() { 
+                var cb = this.callback;
+                browser.get('/index2.html', {}, function(res, $) { 
+                    cb(null, {res: res, $: $});
+                });
+            },
+            log: function(r) { 
+                console.log(r.$('script'));
+            }
+        }
 
         /*
         'default_env': {

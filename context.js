@@ -7,6 +7,7 @@ var _ = require('underscore'),
 var context_c = 0;
 
 
+
 var Context = {
     $deflate: {
         id: 'Context'
@@ -38,17 +39,18 @@ var Context = {
         return ret;
     },
 
-    _prepare_command: function(cmd, args, options, input) { 
+    _prepare_command: function(cmd_name, args, options, input) { 
         var ret_promise = defer.Deferred(),
             context = this,
             c = {
                 context: context,
-                cmd: cmd,
+                cmd_name: cmd_name,
                 options: options,
                 input: input,
                 result: defer.Deferred(),
                 datatype: 'command/result'
             },
+            cmd = context.commands.get(cmd_name),
             f = function() { 
                 (c.input || defer.Deferred().resolve())
                     .done(function(result) { 
@@ -84,13 +86,11 @@ var Context = {
         };
         f.result = ret_promise.promise();
         f.cmd = cmd;
+        f.cmd_name = cmd_name;
         return f;
     },
 
     prepare_command: function(cmd, args, options, input) { 
-        if( !_.isFunction(cmd) ) { 
-            cmd = this.commands.get_func(cmd);
-        }
         return this._prepare_command(cmd, args, options, input);
     },
 

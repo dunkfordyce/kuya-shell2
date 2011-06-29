@@ -1,7 +1,5 @@
 var _ = require('underscore'),
-    O = require('kuya-O'),
-    os = require('os'),
-    hostname = os.hostname();
+    O = require('kuya-O');
 
 exports.describe = function(meta, f) { 
     f.meta = meta;
@@ -25,7 +23,7 @@ var CommandList = {
             
             _.each(obj.commands, function(o, n) { 
                 commands[n] = _.clone(o);
-                commands[n].func = {$inflate: 'RemoteCommand', host: hostname};
+                commands[n].func = {$inflate: 'RemoteCommand'};
             });
 
             return {

@@ -12,10 +12,11 @@ var _ = require('underscore'),
         home: process.env.HOME,
         cwd: process.env.HOME
     },
+    os = require('os'),
+    hostname = os.hostname(),
     contexts = {};
 
 exports.default_commands = default_commands;
-
 
 exports.create = function(req, res) { 
     console.log('doing create');
@@ -37,7 +38,6 @@ exports.load_context = function(req, res, next) {
 };
 
 exports.execute = function(req, res) { 
-    var ctx = inflate(req.body.context),
-        command = inflate(req.body.command);
-    command.execute().always(function(r) { res.send(r); });
+    var cmd = O.inflate(req.body, {context: req.context});
+    cmd().always(function(r) { res.send(r); });
 };

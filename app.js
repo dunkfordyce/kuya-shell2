@@ -18,13 +18,12 @@ app.get ('/context/new', context.create);
 app.all ('/context/:id/*', context.load_context);
 app.post('/context/:id/execute', context.execute);
 
-/*
 app.use(browserify({
     require: [
         './client'
-    ]
+    ],
+    watch: true
 }));
-*/
 
 exports.app = app;
 

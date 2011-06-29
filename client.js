@@ -1,19 +1,17 @@
-var context = require('./context'),
-    inflater = require('./inflate').default_inflater,
+var O = require('kuya-O'),
+    context = require('./context'),
     parser = require('./command_parser'),
+    remote_command = require('./remote_command_jquery'),
     $ = require('jquery-browserify');
 
-var local_context = new context.Context();
-
-window.p = parser;
+window.pa = parser;
 
 $.ajaxSetup({dataType: 'json'});
 
-$.ajax('/context/', {
-        type: 'POST'
+$.ajax('/context/new', {
     })
     .success(function(ret) {
-        window.context = inflater.inflate(ret);
+        window.context = O.inflate(ret);
     })
 ;
 
