@@ -6,6 +6,7 @@ function InflaterNotFound(type, message) {
 }
 InflaterNotFound.prototype = Error.prototype;
 
+
 function Inflater(initial, default_inflater) { 
     this.inflaters = initial || {};
     this.default_inflater = default_inflater;
@@ -17,14 +18,10 @@ Inflater.prototype.get = function(datatype) {
     }
     return inflater;
 };
-Inflater.prototype.inflate = function(obj, args, datatype) { 
-    var ret;
-    obj.__proto__ = this.get(datatype || obj.$datatype);
-    if( obj.init ) { 
-        ret = obj.__proto__.init.apply(obj, args);
-        if( ret !== undefined ) return ret;
-    }
-    return obj;
+Inflater.prototype.inflate = function(obj, ctx) { 
+    var f = this.get(obj.$datatype),
+        r = _.isFunction(f) ? f.call(this, ctx) : _.extend(obj.data, f);
+    return r === undefined ? obj : r;
 };
 Inflater.prototype.extend = function(more) { 
     this.inflaters = _.extend(this.inflaters, more);

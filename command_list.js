@@ -1,5 +1,5 @@
 var _ = require('underscore'),
-    inflater = require('./inflate').default_inflater;
+    O = require('kuya-O');
 
 exports.describe = function(meta, f) { 
     f.meta = meta;
@@ -12,71 +12,66 @@ function CommandNotFound(command) {
 }
 CommandNotFound.prototype = Error.prototype;
 
-function CommandList(initial) { 
-    this.commands = {};
-    this.meta = {};
-    if( initial ) this.extend(initial);
-    this.default_command = null;
-}
-CommandList.prototype.get = function(name) { 
-    var cmd = this.commands[name] || this.default_command;
-    if( !cmd ) { 
-        throw new CommandNotFound(name); 
-    }
-    return cmd;
-};
-CommandList.prototype.get_meta = function(name) { 
-    var meta = this.meta[name] || this.default_command;
-    if( !meta ) { 
-        throw new CommandNotFound(name);
-    }
-    return meta;
-};
-CommandList.prototype._build_meta = function(command, name) { 
-    var meta = command.meta || {};
-    this.meta[name] = meta;
-    meta.args = meta.args || command.length;
-};
-CommandList.prototype.extend = function(commands) { 
-    _.each(commands, function(command, name) { 
-        if( command.$datatype ) { commands[name] = inflater.inflate(command); }
-    });
-    _.each(commands, this._build_meta, this);
-    _.extend(this.commands, commands);
-    return this;
-};
-CommandList.prototype.extend_meta = function(metas) { 
-    var self = this;
-    _.each(metas, function(meta, name) { 
-        self.meta[name] = meta;
-    });
-    return this;
-};
-CommandList.prototype.deflate = function() { 
-    var self = this,
-        commands = {};
-    _.each(this.commands, function(command, name) { 
-        commands[name] = { $datatype: 'command/remotecall' };
-    });
+var CommandList = {
+    $deflate: { 
+        id: 'CommandList',
+        deflater: function(obj, ctx) { 
+            if( !ctx.mode || ctx.mode != 'remote' ) { 
+                return O.default_deflate(obj, ctx);
+            };
+            var commands = {};
+            _.each(obj.commands, function(o, n) { 
+                commands[n] = o.meta;
+            });
 
-    return {
-        $datatype: 'commandlist',
-        data: {
-            meta: this.meta,
-            commands: commands
+            return {
+                $inflate: 'RemoteCommandList', 
+                default: obj.default,
+                commands: commands
+            };
         }
-    };   
-};
-CommandList.inflate = {
-    init: function() { 
-        return (new CommandList())
-            .extend(this.data.commands)
-            .extend_meta(this.data.meta)
-        ;
+    },
+
+    create: function(initial) { 
+        var ret = O.spawn(CommandList, {
+            commands: {},
+            default: null,
+        });
+        ret.extend(initial);
+        return ret;
+    },
+
+    get: function(name) { 
+        var cmd = this.commands[name] || this.default;
+        if( !cmd ) { 
+            throw new CommandNotFound(name); 
+        }
+        return cmd;
+    },
+    get_meta: function(name) { 
+        return this.get(name).meta;
+    },
+    get_func: function(name) { 
+        return this.get(name).func;
+    },
+    _fix_meta: function(cmd) { 
+        cmd.meta.args =cmd.meta.args || cmd.func.length;
+    },
+    add: function(name, func, meta) { 
+        this.commands[name] = {func: func, meta: _.extend({}, func.meta, meta)};
+        this._fix_meta(this.commands[name]);
+        return this;
+    },
+    extend: function(commands) { 
+        var self = this;
+        _.each(commands, function(func, key) { 
+            self.add(key, func);
+        });
+        return this;
     }
 };
 
 exports.CommandNotFound = CommandNotFound;
 exports.CommandList = CommandList;
-inflater.extend({'commandlist': CommandList.inflate});
+O.default_registry.add(CommandList);
 

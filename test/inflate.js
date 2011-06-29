@@ -4,9 +4,11 @@ var vows = require('vows'),
 
 function SomeType() {};
 
-var type1 = {
-        a: true,
-        b: false
+var type1 = function(data) {
+        return _.extend({ 
+            a: true,
+            b: false
+        }, this.data);
     },
     type2 = {
         returnthis: function(thing) { return this[thing]; }
@@ -48,17 +50,6 @@ vows.describe('inflater')
                 assert.throws(function() { 
                     inflater.get('doesntexist');
                 }, inflater.InflaterNotFound);
-            },
-            'inflate with type': function(inflater) { 
-                var obj = inflater.inflate({c: 1}, null, 'type1');
-                assert.equal(obj.__proto__, type1);
-                assert.equal(obj.a, true);
-                assert.equal(obj.b, false);
-                assert.equal(obj.c, 1);
-            },
-            'inflate with dataType': function(inflater) { 
-                var obj = inflater.inflate({c: 1, $datatype: 'type1'});
-                assert.equal(obj.__proto__, type1);
             },
             'inflate with init': function(inflater) { 
                 var obj = inflater.inflate({$datatype: 'type_with_init'});

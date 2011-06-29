@@ -1,12 +1,13 @@
 var vows = require('vows'),
     assert = require('assert'),
+    O = require('kuya-O'),
     env = require('../env'),
-    inflater = require('../inflate').default_inflater;
+    inflater = require('kuya-O').default;
 
 vows.describe('env')
     .addBatch({
         'Env': {
-            topic: new env.Env({foo: 'bar'}),
+            topic: new env.Env.create({foo: 'bar'}),
             'get': function(e) { 
                 assert.ok(e.get('foo'));
             },
@@ -19,12 +20,14 @@ vows.describe('env')
                 assert.equal(e.get('even'), 'more');
             },
             'deflate': function(e) { 
-                var deflated = e.deflate();
-                assert.equal(deflated.$datatype, 'env');
+                var deflated = inflater.deflate(e); 
+                assert.equal(deflated.$inflate, 'env');
                 assert.ok(deflated.data.foo);
             },
             'inflate': function(e) { 
-                assert.deepEqual(inflater.inflate(e.deflate()).e, e.e);
+                var other = inflater.inflate(inflater.deflate(e));
+                assert.deepEqual(other, e);
+                assert.ok(O.instanceOf(other, env.Env));
             },
             'changed': function(e) { 
                 e.changed = false;

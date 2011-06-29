@@ -1,7 +1,7 @@
 var command_list = require('../../command_list'),
     describe = command_list.describe;
 
-exports.test_commands = new command_list.CommandList({
+exports.test_commands = command_list.CommandList.create({
     truefunc: function() { 
         this.result.resolve(true);
     },

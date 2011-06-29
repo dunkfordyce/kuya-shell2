@@ -1,7 +1,9 @@
-var vows = require('vows'),
+var sys = require('sys'),
+    vows = require('vows'),
     assert = require('assert'),
-    inflater = require('../inflate').default_inflater,
+    O = require('kuya-O'),
     command_list = require('../command_list'),
+    remote_command_list = require('../remote_command_list'),
     test_commands = require('./support/commands.js').test_commands;
 
 function nullfunc() {};
@@ -9,11 +11,11 @@ function nullfunc() {};
 vows.describe('command_list')
     .addBatch({
         'CommandList': {
-            topic: new command_list.CommandList({
+            topic: command_list.CommandList.create({
                 testfunc1: nullfunc
             }),
             'get': function(cl) { 
-                assert.equal(cl.get('testfunc1'), nullfunc);
+                assert.equal(cl.get_func('testfunc1'), nullfunc);
             },
             'get missing': function(cl) { 
                 assert.throws(function() { 
@@ -23,25 +25,32 @@ vows.describe('command_list')
             'extend': function(cl) { 
                 var testfunc2 = function() {};
                 cl.extend({testfunc2: testfunc2});
-                assert.equal(cl.get('testfunc2'), testfunc2);
+                assert.equal(cl.get_func('testfunc2'), testfunc2);
+            },
+            'remote': { 
+                topic: O.deflate(test_commands, {mode: 'remote'}),
+                //log: function(deflated) { console.error(deflated); },
+                inflates: function(deflated) { 
+                    var rcl = O.inflate(deflated);
+                    assert.ok( O.instanceOf(rcl, remote_command_list.RemoteCommandList) );
+                }
             },
             'deflated': { 
-                topic: test_commands.deflate(),
+                topic: O.deflate(test_commands),
                 //'log': function(deflated) { console.log(deflated); },
                 'simple': function(deflated) { 
-                    assert.equal(deflated.$datatype, 'commandlist');
-                    assert.ok(deflated.data.meta.truefunc);
-                    assert.ok(deflated.data.commands.truefunc);
+                    assert.equal(deflated.$inflate, 'CommandList');
+                    assert.ok(deflated.commands.truefunc);
                 },
                 'got meta': function(deflated) { 
-                    assert.ok(deflated.data.meta.can_run_in_browser.out_of_server);
+                    assert.ok(deflated.commands.can_run_in_browser.meta.out_of_server);
                 },
                 'description': function(deflated) { 
-                    assert.ok(deflated.data.meta.command_with_description.description);
+                    assert.ok(deflated.commands.command_with_description.meta.description);
                 },
                 'options': function(deflated) { 
-                    assert.ok(deflated.data.meta.command_with_options_meta.options);
-                }
+                    assert.ok(deflated.commands.command_with_options_meta.meta.options);
+                },
             } /*,
             'inflate details': {
                 topic: inflater.inflate(test_commands.deflate()),

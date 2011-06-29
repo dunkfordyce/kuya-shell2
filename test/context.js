@@ -6,20 +6,21 @@ var sys = require('sys'),
     fs = require('fs'),
     defer = require('../deferred'),
     test_commands = require('./support/commands').test_commands,
-    inflater = require('../inflate').default_inflater;
+    env = require('../env'),
+    O = require('kuya-O');
 
 function nullfunc() {};
 
 vows.describe('context')
     .addBatch({
         'Context': { 
-            topic: new context.Context({
+            topic: context.Context.create({
                 commands: test_commands,
                 env: {HOME: '/home/kuya'}
             }),
-            'env': function(context) { 
-                assert.ok(context.env);
-                assert.ok(context.env.get('HOME'));
+            'env': function(ctx) { 
+                assert.ok(ctx.env);
+                assert.ok(ctx.env.get('HOME'));
             },
             /*
             'prepare command': function(context) { 
@@ -38,17 +39,20 @@ vows.describe('context')
                 assert.equal(f, r.cmd);
             },
             */
-            'deflate': function(context) { 
-                assert.ok(context.deflate());
-                assert.equal(context.deflate().$datatype, 'context');
-                console.log(sys.inspect(context.deflate(), 0, null));
+            'deflate': function(ctx) { 
+                assert.ok(O.deflate(ctx));
+                assert.equal(O.deflate(ctx).$inflate, 'context');
             },
-            'inflate': function(context) { 
-                //console.log(context.deflate());
-                var new_context = inflater.inflate(context.deflate());
-                assert.equal(new_context.path, context.path);
-                assert.deepEqual(new_context.deflate(), context.deflate());
+            'inflate': function(ctx) { 
+                var new_context = O.inflate(O.deflate(ctx));
+                var new_env = O.inflate(O.deflate(ctx.env));
+                assert.ok(O.instanceOf(new_context, context.Context));
+                assert.ok(O.instanceOf(new_env, env.Env));
+                assert.ok(O.instanceOf(new_context.env, env.Env));
+                assert.deepEqual(O.deflate(new_context), O.deflate(ctx));
+                console.log(sys.inspect(ctx, true, null));
             },
+            
             /*
             'execute command': {
                 topic: function(context) { 
