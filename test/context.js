@@ -22,11 +22,10 @@ vows.describe('context')
                 assert.ok(ctx.env);
                 assert.ok(ctx.env.get('HOME'));
             },
-            /*
             'prepare command': function(context) { 
                 var r = context.prepare_command('truefunc');
                 assert.isFunction( r );
-                assert.equal( r.cmd, test_commands.commands.truefunc  );
+                assert.equal( r.cmd, test_commands.get_func('truefunc') );
             },
             'prepare missing': function(context) { 
                 assert.throws(function() { 
@@ -38,7 +37,6 @@ vows.describe('context')
                     r = context.prepare_command(f);
                 assert.equal(f, r.cmd);
             },
-            */
             'deflate': function(ctx) { 
                 assert.ok(O.deflate(ctx));
                 assert.equal(O.deflate(ctx).$inflate, 'context');
@@ -50,18 +48,19 @@ vows.describe('context')
                 assert.ok(O.instanceOf(new_env, env.Env));
                 assert.ok(O.instanceOf(new_context.env, env.Env));
                 assert.deepEqual(O.deflate(new_context), O.deflate(ctx));
-                console.log(sys.inspect(ctx, true, null));
             },
-            
-            /*
             'execute command': {
                 topic: function(context) { 
+                    try { 
                     var r = context.execute_command('truefunc'),
                         cb = this.callback;
                     r.then(
                         function(a) { cb(null, a); },
                         function(a) { cb(a, null); }
                     );
+                    }catch(e) { 
+                    console.error(e);
+                    }
                 },
                 'command executed': function(err, result) { 
                     assert.ifError(err);
@@ -156,7 +155,6 @@ vows.describe('context')
                 }
 
             }
-            */
         }
     })
     .export(module)

@@ -1,13 +1,14 @@
 var _ = require('underscore'),
+    O = require('kuya-O'),
     context = require('./context'),
+    command_list = require('./command_list'),
+    env = require('./env'),
     defer = require('./deferred'),
-    inflate = require('./inflate'),
-    inflater = inflate.default_inflater,
-    default_commands = new context.CommandList({
+    default_commands = command_list.CommandList.create({
         ls: require('./commands/ls').ls,
         select: require('./commands/select').select
     }),
-    default_env = new context.Env({
+    default_env = env.Env.create({
         home: process.env.HOME,
         cwd: process.env.HOME
     }),
@@ -15,18 +16,19 @@ var _ = require('underscore'),
 
 exports.default_commands = default_commands;
 
-exports.default_env = function(req, res) { 
-    res.send(default_env.deflate());
-};
 exports.commands = function(req, res) { 
-    res.send(default_commands.deflate());
+    var r = O.deflate(default_commands, {mode: 'remote'});
+    res.send(r);
 };
 
+
+/*
 exports.create = function(req, res) { 
     var id = _.uniqueId(),
         ctx = new context.Context({id: id, commands: default_commands});
     res.send(ctx.deflate());
 };
+*/
 
 /*
 exports.load_context = function(req, res, next) { 

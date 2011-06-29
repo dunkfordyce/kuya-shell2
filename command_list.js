@@ -20,12 +20,14 @@ var CommandList = {
                 return O.default_deflate(obj, ctx);
             };
             var commands = {};
+            
             _.each(obj.commands, function(o, n) { 
-                commands[n] = o.meta;
+                commands[n] = _.clone(o);
+                commands[n].func = 'remote';
             });
 
             return {
-                $inflate: 'RemoteCommandList', 
+                $inflate: 'CommandList', 
                 default: obj.default,
                 commands: commands
             };

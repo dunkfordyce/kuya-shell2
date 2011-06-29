@@ -3,7 +3,6 @@ var sys = require('sys'),
     assert = require('assert'),
     O = require('kuya-O'),
     command_list = require('../command_list'),
-    remote_command_list = require('../remote_command_list'),
     test_commands = require('./support/commands.js').test_commands;
 
 function nullfunc() {};
@@ -31,8 +30,9 @@ vows.describe('command_list')
                 topic: O.deflate(test_commands, {mode: 'remote'}),
                 //log: function(deflated) { console.error(deflated); },
                 inflates: function(deflated) { 
-                    var rcl = O.inflate(deflated);
-                    assert.ok( O.instanceOf(rcl, remote_command_list.RemoteCommandList) );
+                    var cl = O.inflate(deflated);
+                    assert.ok( O.instanceOf(cl, command_list.CommandList) );
+                    assert.equal( cl.get_func('truefunc'), 'remote' );
                 }
             },
             'deflated': { 

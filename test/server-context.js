@@ -5,7 +5,8 @@ var vows = require('vows'),
     defer = require('../deferred'),
     app = require('../app').app,
     context = require('../context'),
-    inflater = require('../inflate').default_inflater;
+    command_list = require('../command_list'),
+    O = require('kuya-O');
 
 app.listen(3000);
 var browser = tobi.createBrowser(3000, 'localhost');
@@ -64,6 +65,7 @@ context.default_commands = require('./support/commands').test_commands;
 
 vows.describe('server-context')
     .addBatch({
+        /*
         'default_env': {
             topic: function() { 
                 var self = this;
@@ -78,6 +80,7 @@ vows.describe('server-context')
                 assert.equal(env.get('cwd'), '/home/dunk');
             }
         },
+        */
         'command_list': {
             topic: function() { 
                 var self = this;
@@ -86,13 +89,13 @@ vows.describe('server-context')
                 });
             },
             ok: function(err, res) { 
-                var cl = inflater.inflate(res.body);
-                console.log(cl);
+                var cl = O.inflate(res.body);
                 assert.ok(cl);
-                assert.ok(cl instanceof context.CommandList);
+                assert.ok( O.instanceOf(cl, command_list.CommandList) );
             }
         }
     })
+    /*
     .addBatch({
         'full': { 
             topic: function() { 
@@ -138,8 +141,6 @@ vows.describe('server-context')
             }
         }
     })
-
-    /*
     .addBatch({
         'execute': { 
             topic: get_context(),
