@@ -1,9 +1,37 @@
 var O = require('kuya-O'),
+    _ = require('underscore'),
     context = require('./context'),
     Context = context.Context,
-    defer = require('./deferred');
+    defer = require('./deferred'),
+    env = require('./env'),
+    command_list = require('./command_list');
 
 var ServerContext = O.spawn(Context, {
+
+    create: function(options) { 
+        options = options || {};
+        var inst = {};
+        inst.id = options.id === undefined ? _.uniqueId() : options.id;
+        if( options.env ) { 
+            if( O.instanceOf(options.env, env.Env) ) { inst.env = options.env; }
+            else { inst.env = env.Env.create(options.env); }
+        } else {
+            inst.env = env.Env.create();
+        }
+        if( options.commands ) { 
+            if( O.instanceOf(options.commands, command_list.CommandList ) ) { 
+                inst.commands = options.commands; 
+            } else {
+                inst.commands = command_list.CommandList.create(options.commands);
+            }
+        } else {
+            inst.commands = command_list.CommandList.create();
+        }
+        
+        var ret = O.spawn(this, inst);
+        return ret;
+    },
+
     _prepare_command: function(cmd_name, args, options, input) { 
         var ret_promise = defer.Deferred(),
             context = this,

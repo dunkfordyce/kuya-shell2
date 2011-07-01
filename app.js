@@ -43,18 +43,17 @@ var default_commands = {
     };
 
 io.sockets.on('connection', function (socket) {
-    socket.on('createcontext', function() { 
+    socket.on('context/create', function(cb) { 
         var ctx = Context.create({commands: default_commands, env: default_env});
         contexts[ctx.id] = ctx;
-        socket.emit('createcontext/reply', O.deflate(ctx, {mode:'remote'})); 
-        console.log('created context', ctx);
+        cb(O.deflate(ctx, {mode: 'remote'}));
     });
     socket.on('context/execute_command', function(ctxref, cmd, cb) {
         console.log('looking for ctx', ctxref.$ref);
         var ctx = contexts[ctxref.$ref];
         console.log(contexts);
         console.log('got context', ctx);
-        var p = ctx.execute_command.apply(ctx, cmd).always(cb);
+        ctx.execute_command.apply(ctx, cmd).always(cb);
     });
 });
 

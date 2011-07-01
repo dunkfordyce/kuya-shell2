@@ -10,7 +10,6 @@ var ClientContext = O.spawn(Context, {
     },
 
     execute_command: function(cmd, args, options, input) { 
-        console.log('exec cmd'); 
         this.socket.emit('context/execute_command', 
             O.deflate(this, {mode: 'ref'}),
             [cmd, args, options, input],

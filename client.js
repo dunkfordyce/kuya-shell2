@@ -11,13 +11,14 @@ var ctx = null;
 var socket = io.connect('http://localhost');
 window.s = socket;
 socket.on('connect', function () {
-    if( ctx === null ) socket.emit('createcontext');
-    else ctx.socket = socket;
-});
-socket.on('createcontext/reply', function(in_ctx) { 
-    ctx = O.inflate(in_ctx);
-    ctx.socket = socket;
-    window.ctx = ctx;
+    if( ctx === null ) {
+        socket.emit('context/create', function(ctx) { 
+            window.ctx = O.inflate(ctx);
+            window.ctx.socket = socket;
+        });
+    } else {
+        ctx.socket = socket;
+    }
 });
 
 /*
@@ -32,5 +33,5 @@ $.ajax('/context/new', {
 ;
 */
 
-//console.log('systems are go');
+console.log('systems are go');
 

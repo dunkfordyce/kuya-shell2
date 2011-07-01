@@ -7,32 +7,6 @@ var _ = require('underscore'),
 var Context = {
     $deflate: {
         id: 'Context'
-    },
-
-    default_commands: null,
-
-    create: function(options) { 
-        options = options || {};
-        var inst = {};
-        inst.id = options.id === undefined ? _.uniqueId() : options.id;
-        if( options.env ) { 
-            if( O.instanceOf(options.env, env.Env) ) { inst.env = options.env; }
-            else { inst.env = env.Env.create(options.env); }
-        } else {
-            inst.env = env.Env.create();
-        }
-        if( options.commands ) { 
-            if( O.instanceOf(options.commands, command_list.CommandList ) ) { 
-                inst.commands = options.commands; 
-            } else {
-                inst.commands = command_list.CommandList.create(options.commands);
-            }
-        } else {
-            inst.commands = command_list.CommandList.create(this.default_commands);
-        }
-        
-        var ret = O.spawn(this, inst);
-        return ret;
     }
 };
 
