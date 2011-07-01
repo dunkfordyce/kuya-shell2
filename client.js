@@ -8,6 +8,17 @@ window.pa = parser;
 
 var ctx = null;
 
+DNode.connect(function (remote) {
+    console.log('connected to remote', remote);
+    window.remote = remote;
+    remote.context_foo(function(in_ctx) {
+        console.log('got context', in_ctx);
+        window.ctx = ctx = in_ctx;
+    });
+});
+
+
+/*
 var socket = io.connect('http://localhost');
 window.s = socket;
 socket.on('connect', function () {
@@ -19,6 +30,7 @@ socket.on('createcontext/reply', function(in_ctx) {
     ctx.socket = socket;
     window.ctx = ctx;
 });
+*/
 
 /*
 $.ajaxSetup({dataType: 'json'});

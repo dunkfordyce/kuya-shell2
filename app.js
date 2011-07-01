@@ -42,6 +42,27 @@ var default_commands = {
         cwd: process.env.HOME
     };
 
+var dnode = require('dnode');
+var server = dnode({
+    context_create: function (cb) { 
+        var ctx = Context.create({commands: default_commands, env: default_env});
+        contexts[ctx.id] = ctx;
+        cb(O.deflate(ctx, {mode:'remote'}));
+        console.log('created context', ctx);
+    },
+    context_refresh: function(ctx_ref, cb) { 
+        cb(O.deflate(contexts[ctx_ref.$ref]));
+    },
+    context_foo: function(cb) { 
+        console.log('context_foo', arguments);
+        var ctx = Context.create({commands: default_commands, env: default_env});
+        contexts[ctx.id] = ctx;
+        cb(ctx);
+    }
+});
+server.listen(app);
+
+/*
 io.sockets.on('connection', function (socket) {
     socket.on('createcontext', function() { 
         var ctx = Context.create({commands: default_commands, env: default_env});
@@ -57,6 +78,7 @@ io.sockets.on('connection', function (socket) {
         var p = ctx.execute_command.apply(ctx, cmd).always(cb);
     });
 });
+*/
 
 exports.app = app;
 
