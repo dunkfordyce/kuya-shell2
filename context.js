@@ -4,8 +4,6 @@ var _ = require('underscore'),
     command_list = require('./command_list'),
     defer = require('./deferred');
 
-var context_c = 0;
-
 var Context = {
     $deflate: {
         id: 'Context'
@@ -16,7 +14,7 @@ var Context = {
     create: function(options) { 
         options = options || {};
         var inst = {};
-        inst.id = options.id || (++context_c);
+        inst.id = options.id === undefined ? _.uniqueId() : options.id;
         if( options.env ) { 
             if( O.instanceOf(options.env, env.Env) ) { inst.env = options.env; }
             else { inst.env = env.Env.create(options.env); }
@@ -33,7 +31,7 @@ var Context = {
             inst.commands = command_list.CommandList.create(this.default_commands);
         }
         
-        var ret = O.spawn(Context, inst);
+        var ret = O.spawn(this, inst);
         return ret;
     }
 };

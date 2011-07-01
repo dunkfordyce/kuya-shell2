@@ -1,6 +1,7 @@
 var O = require('kuya-O'),
     context = require('./context'),
-    Context = context.Context;
+    Context = context.Context,
+    defer = require('./deferred');
 
 var ServerContext = O.spawn(Context, {
     _prepare_command: function(cmd_name, args, options, input) { 
@@ -9,7 +10,7 @@ var ServerContext = O.spawn(Context, {
             c = {
                 context: context,
                 cmd_name: cmd_name,
-                cmd: context.commands.get(cmd_name),
+                cmd: context.commands.get_func(cmd_name),
                 options: options,
                 input: input,
                 result: defer.Deferred(),
@@ -49,7 +50,7 @@ var ServerContext = O.spawn(Context, {
             return this;
         };
         f.result = ret_promise.promise();
-        f.cmd = cmd;
+        f.cmd = c.cmd;
         f.cmd_name = cmd_name;
         return f;
     },

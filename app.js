@@ -1,6 +1,8 @@
-var express = require('express'),
+var O = require('kuya-O'),
+    _ = require('underscore'),
+    express = require('express'),
     browserify = require('browserify'),
-    context = require('./server-context'),
+    Context = require('./context-server').ServerContext,
     app = express.createServer();
 
 app.use(express.static(__dirname+'/public'));
@@ -14,9 +16,9 @@ app.error(function(err, req, res, next) {
     }, 200);
 });
 
-app.get ('/context/new', context.create);
-app.all ('/context/:id/*', context.load_context);
-app.post('/context/:id/execute', context.execute);
+//app.get ('/context/new', context.create);
+//app.all ('/context/:id/*', context.load_context);
+//app.post('/context/:id/execute', context.execute);
 
 app.use(browserify({
     require: [
@@ -25,9 +27,42 @@ app.use(browserify({
     watch: true
 }));
 
+var sio = require('socket.io'),
+    io = sio.listen(app),
+    contexts = {};
+
+console.error(io);
+
+var default_commands = {
+        ls: require('./commands/ls').ls,
+        select: require('./commands/select').select
+    },
+    default_env = {
+        home: process.env.HOME,
+        cwd: process.env.HOME
+    };
+
+io.sockets.on('connection', function (socket) {
+    socket.on('createcontext', function() { 
+        var ctx = Context.create({commands: default_commands, env: default_env});
+        contexts[ctx.id] = ctx;
+        socket.emit('createcontext/reply', O.deflate(ctx, {mode:'remote'})); 
+        console.log('created context', ctx);
+    });
+    socket.on('context/execute_command', function(ctxref, cmd, cb) {
+        console.log('looking for ctx', ctxref.$ref);
+        var ctx = contexts[ctxref.$ref];
+        console.log(contexts);
+        console.log('got context', ctx);
+        var p = ctx.execute_command.apply(ctx, cmd).always(cb);
+    });
+});
+
 exports.app = app;
 
 if( !module.parent ) { 
     console.log('listening on 3000');
     app.listen(3000);
+
 }
+
