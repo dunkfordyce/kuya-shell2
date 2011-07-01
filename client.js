@@ -6,20 +6,23 @@ var O = require('kuya-O'),
 
 window.pa = parser;
 
+var ctx = null;
+
 var socket = io.connect('http://localhost');
 window.s = socket;
 socket.on('connect', function () {
-    socket.emit('createcontext');
+    if( ctx === null ) socket.emit('createcontext');
+    else ctx.socket = socket;
 });
-socket.on('createcontext/reply', function(ctx) { 
-    ctx = O.inflate(ctx);
+socket.on('createcontext/reply', function(in_ctx) { 
+    ctx = O.inflate(in_ctx);
     ctx.socket = socket;
     window.ctx = ctx;
 });
 
+/*
 $.ajaxSetup({dataType: 'json'});
 
-/*
 $.ajax('/context/new', {
 
     })
