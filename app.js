@@ -2,7 +2,7 @@ var O = require('kuya-O'),
     _ = require('underscore'),
     express = require('express'),
     browserify = require('browserify'),
-    Context = require('./context-server').ServerContext,
+    Context = require('./context').Context,
     app = express.createServer();
 
 app.use(express.static(__dirname+'/public'));
@@ -31,8 +31,6 @@ var sio = require('socket.io'),
     io = sio.listen(app),
     contexts = {};
 
-console.error(io);
-
 var default_commands = {
         ls: require('./commands/ls').ls,
         select: require('./commands/select').select
@@ -42,24 +40,36 @@ var default_commands = {
         cwd: process.env.HOME
     };
 
-var dnode = require('dnode');
-var server = dnode({
-    context_create: function (cb) { 
-        var ctx = Context.create({commands: default_commands, env: default_env});
-        contexts[ctx.id] = ctx;
-        cb(O.deflate(ctx, {mode:'remote'}));
-        console.log('created context', ctx);
-    },
-    context_refresh: function(ctx_ref, cb) { 
-        cb(O.deflate(contexts[ctx_ref.$ref]));
-    },
-    context_foo: function(cb) { 
-        console.log('context_foo', arguments);
-        var ctx = Context.create({commands: default_commands, env: default_env});
-        contexts[ctx.id] = ctx;
-        cb(ctx);
+function context_interface(context) { 
+    return {
+        id: context.id,
+        env: context.env.data,
+        commands: context.commands.get_all_meta(),
+        execute: function(command, cb) { 
+            console.log('execute', command);
+            context.execute_command(command).always(cb);
+        }
+    };
+}
+
+var main_interface = {
+    context: {
+        create: function(cb) { 
+            var ctx = Context.create({commands: default_commands, env: default_env});
+            contexts[ctx.id] = ctx;
+            cb(context_interface(ctx));
+            console.log('created context', ctx);
+        },
+        get: function(id, cb) { 
+            cb(context_interface(contexts[id]));
+        },
+        destroy: function(id, cb) { 
+        }
     }
-});
+};
+
+var dnode = require('dnode');
+var server = dnode(main_interface);
 server.listen(app);
 
 /*

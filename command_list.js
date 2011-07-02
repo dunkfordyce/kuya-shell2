@@ -8,7 +8,7 @@ exports.describe = function(meta, f) {
 
 function CommandNotFound(command) { 
     this.command = command;
-    this.message = 'Command Not Found'
+    this.message = 'Command Not Found "'+command+'"';
 }
 CommandNotFound.prototype = Error.prototype;
 
@@ -55,6 +55,13 @@ var CommandList = {
     },
     get_func: function(name) { 
         return this.get(name).func;
+    },
+    get_all_meta: function() { 
+        var ret = {};
+        _.each(this.commands, function(cmd, name) { 
+            ret[name] = cmd.meta;
+        });
+        return ret;
     },
     _fix_meta: function(cmd) { 
         cmd.meta.args =cmd.meta.args || cmd.func.length;

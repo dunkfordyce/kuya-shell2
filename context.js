@@ -35,15 +35,17 @@ var Context = {
         return ret;
     },
 
-    _prepare_command: function(cmd_name, args, options, input) { 
+    _prepare_command: function(cmd) { 
+        console.log('prepare', cmd);
+        console.log('command', cmd.command);
         var ret_promise = defer.Deferred(),
             context = this,
             c = {
                 context: context,
-                cmd_name: cmd_name,
-                cmd: context.commands.get_func(cmd_name),
-                options: options,
-                input: input,
+                cmd_name: cmd.command,
+                cmd: context.commands.get_func(cmd.command),
+                options: cmd.options,
+                input: cmd.input,
                 result: defer.Deferred(),
                 datatype: 'command/result'
             },
@@ -53,7 +55,7 @@ var Context = {
                         var ret;
                         c.input = result;
                         try { 
-                            ret = c.cmd.apply(c, args);
+                            ret = c.cmd.apply(c, cmd.args);
                         } catch(e) { 
                             c.result.reject(e);
                             return;
@@ -82,16 +84,16 @@ var Context = {
         };
         f.result = ret_promise.promise();
         f.cmd = c.cmd;
-        f.cmd_name = cmd_name;
+        f.cmd_name = c.cmd_name;
         return f;
     },
 
-    prepare_command: function(cmd, args, options, input) { 
-        return this._prepare_command(cmd, args, options, input);
+    prepare_command: function(cmd) { 
+        return this._prepare_command(cmd);
     },
 
-    execute_command: function(cmd, args, options, input) { 
-        return this.prepare_command(cmd, args, options, input)();
+    execute_command: function(cmd) { 
+        return this.prepare_command(cmd)();
     },
 
     execute_chain: function(chain, return_all) { 
