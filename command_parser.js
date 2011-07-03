@@ -797,26 +797,26 @@ module.exports = (function(){
         }
         
         
-        if (input.substr(pos).match(/^[a-zA-Z0-9_\-]/) !== null) {
+        if (input.substr(pos).match(/^[a-zA-Z0-9_\-\/]/) !== null) {
           var result2 = input.charAt(pos);
           pos++;
         } else {
           var result2 = null;
           if (reportMatchFailures) {
-            matchFailed("[a-zA-Z0-9_\\-]");
+            matchFailed("[a-zA-Z0-9_\\-\\/]");
           }
         }
         if (result2 !== null) {
           var result1 = [];
           while (result2 !== null) {
             result1.push(result2);
-            if (input.substr(pos).match(/^[a-zA-Z0-9_\-]/) !== null) {
+            if (input.substr(pos).match(/^[a-zA-Z0-9_\-\/]/) !== null) {
               var result2 = input.charAt(pos);
               pos++;
             } else {
               var result2 = null;
               if (reportMatchFailures) {
-                matchFailed("[a-zA-Z0-9_\\-]");
+                matchFailed("[a-zA-Z0-9_\\-\\/]");
               }
             }
           }

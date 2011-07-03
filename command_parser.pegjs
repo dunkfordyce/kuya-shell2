@@ -88,7 +88,7 @@ argument_quoted
     = StringLiteral
 
 unqoted_string
-    = str:([a-zA-Z0-9_-]+) 
+    = str:([a-zA-Z0-9_\-\/]+) 
     { 
         return str.join(''); 
     }

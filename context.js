@@ -9,8 +9,6 @@ var Context = {
         id: 'Context'
     },
 
-    default_commands: null,
-
     create: function(options) { 
         options = options || {};
         var inst = {};
@@ -28,7 +26,7 @@ var Context = {
                 inst.commands = command_list.CommandList.create(options.commands);
             }
         } else {
-            inst.commands = command_list.CommandList.create(this.default_commands);
+            inst.commands = command_list.CommandList.create();
         }
         
         var ret = O.spawn(this, inst);
@@ -42,12 +40,12 @@ var Context = {
             context = this,
             c = {
                 context: context,
+                env: context.env,
                 cmd_name: cmd.command,
                 cmd: context.commands.get_func(cmd.command),
                 options: cmd.options,
                 input: cmd.input,
-                result: defer.Deferred(),
-                datatype: 'command/result'
+                result: defer.Deferred()
             },
             f = function() { 
                 (c.input || defer.Deferred().resolve())
@@ -72,10 +70,10 @@ var Context = {
             };
 
         c.result.done(function(ret) { 
-            ret_promise.resolve({$datatype: c.datatype, data: ret});
+            ret_promise.resolve(ret);
         });
         c.result.fail(function(ret) { 
-            ret_promise.reject({$datatype: 'command/error', data: ret});
+            ret_promise.reject(ret);
         });
 
         f.input = function(promise) { 

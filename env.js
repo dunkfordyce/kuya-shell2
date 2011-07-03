@@ -11,30 +11,31 @@ var Env = {
             data: initial || {}
         });
     },
-    changed: false,
+    _changed: false,
     get: function(key) { 
         return this.data[key];
     },
     set: function(key, val) { 
         this.data[key] = val;
-        this.changed = true;
+        if( !this._changed ) { this._changed = {}; }
+        this._changed[key] = val;
         return this;
     },
     extend: function(more) { 
-        if( this.changed ) { 
-            _.extend(this.data, more);
-        } else {
-            var self = this;
-            _.each(more, function(v, k) { 
-                if( self.data[k] != v ) { 
-                    self.changed = true;
-                    self.data[k] = v;
-                }
-            });
-        }
+        var self = this;
+        _.each(more, function(v, k) { 
+            self.set(k, v);
+        });
         return this;
     },
-    is_changed: function() { return this.changed; }
+    is_changed: function() { return this._changed; },
+    changed: function() { 
+        return this._changed;
+    },
+    unset_changed: function() { 
+        this._changed = false;
+        return this;
+    }
 };
 
 exports.Env = Env;

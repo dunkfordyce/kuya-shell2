@@ -13,6 +13,28 @@
       });
     */
     </script>
+
+    <script type="text/html" data-template-for="FileList" data-template-mode="default">
+    <table>
+        <thead>
+            <tr>
+                <th>name</th>
+                <th>size</th>
+            </tr>
+        </thead>
+        <tbody>
+        <% _.each(files, function(f) { %>
+            <tr>
+                <td><%=f.filename%></td>
+                <td><%=f.size%></td>
+            </tr>
+        <% }); %>
+        </tbody>
+    </table>
+    </script>
+
+    <div id="output"></div>
+
     <script type="text/javascript">
     console.log('requireing main');
     require('./client');
