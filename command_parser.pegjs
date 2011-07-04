@@ -1,7 +1,7 @@
 start
     = command+
 
-command
+command "command"
     = env:envoverrides _ command:(shellcommand / jscommand) 
     { 
         var r = {command: command};
@@ -11,7 +11,7 @@ command
         return r;
     }
 
-envoverrides
+envoverrides "env"
     = envs:envoverride* 
     {
         if( !envs.length ) { return undefined; }
@@ -22,13 +22,13 @@ envoverrides
         return r;
     }
 
-envoverride
+envoverride "envoverride"
     = key:String "=" val:String whitespace 
     { 
         return {key: key, val: val}; 
     }
 
-shellcommand 
+shellcommand "shellcommand"
     = _ "!" command:shellarg args:shellarg* command_end 
     { 
         var r = {type: 'shell', command: command};
@@ -38,34 +38,45 @@ shellcommand
         return r;
     } 
 
-shellarg 
+shellarg "shellarg"
     = arg:String _ 
     { 
         return arg; 
     }
 
-jscommand 
+jscommand "jscommand"
     = _ command:command_name command_end args:arguments? 
     {
+        console.log(arguments, this);
         return {type: 'js', command: command, args: args}; 
     }
 
-command_end
+command_end "commandend"
     = whitespace / EOF / ";"
 
-command_name
+command_name "command_name"
     = command:String 
 
-arguments
-    = args:((option / argument)*) (EOF / ";") 
+arguments "arguments"
+    = args:((option / viewoption / argument)*) (EOF / ";") 
     { 
         return args.length ? args : undefined; 
     }
 
 option
-    = ("--" / "-") option:(String) optionarg:option_arg? _
+    = length:("--" / "-") option:(String) optionarg:option_arg? _
     { 
-        var r = {option: option};
+        var r = {option: option, short: length=='-'};
+        if( optionarg ) { 
+            r.arg = optionarg;
+        }
+        return r;
+    }
+
+viewoption
+    = length:("++" / "+") option:(String) optionarg:option_arg? _
+    { 
+        var r = {viewoption: option, short: length=='+'};
         if( optionarg ) { 
             r.arg = optionarg;
         }
@@ -76,7 +87,7 @@ option_arg
     = "=" arg:String { return arg; }
 
 argument
-    = argument:String  _
+    = !"-" argument:String  _
     {
         return {argument: argument};
     }
@@ -88,10 +99,13 @@ argument_quoted
     = StringLiteral
 
 unqoted_string
-    = str:([a-zA-Z0-9_\-\/]+) 
+    = !("'" / '"') str:notspacechar+
     { 
         return str.join(''); 
     }
+
+notspacechar
+    = !" " char_:SourceCharacter { return char_; }
 
 not_whitespace
     = !(whitespace) 

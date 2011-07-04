@@ -1,0 +1,94 @@
+<html>
+<head>
+    <style>
+        * {
+            font-family: monospace;
+        }
+        span.command { color: blue; }
+        span.command-option { color: green; border: 1px solid grey;}
+        span.command-viewoption { color: purple; border: 1px solid grey;}
+        span.command-arg {  color: red; }
+    </style>
+</head>
+<body>
+    <script src="/dnode.js"></script>
+    <script type="text/javascript" src="/browserify.js"></script>
+    <script>
+    /*
+      var socket = io.connect('http://localhost');
+      socket.on('news', function (data) {
+        console.log(data);
+        socket.emit('my other event', { my: 'data' });
+      });
+    */
+    </script>
+
+    <script type="text/html" data-template-for="FileList" data-template-mode="default">
+    <table>
+        <thead>
+            <tr>
+                <th>name</th>
+                <th>size</th>
+            </tr>
+        </thead>
+        <tbody>
+        <% _.each(files, function(f) { %>
+            <tr>
+                <td><%=f.filename%></td>
+                <td><%=f.size%></td>
+            </tr>
+        <% }); %>
+        </tbody>
+    </table>
+    </script>
+
+    <script type="text/html" id="cli">
+    <span class="command"><%=command%></span>
+    <% _.each(args, function(arg) { %>
+        <% if( arg.option ) { %>
+            <span class="command-option">
+                <%=arg.short?'-':'--'%><%=arg.option%><% if( arg.arg ) { %>=<%=arg.arg%> <% } %>
+            </span>
+        <% } else if( arg.viewoption ) { %>
+            <span class="command-viewoption">
+                <%=arg.short?'+':'++'%><%=arg.viewoption%><% if( arg.arg ) { %>=<%=arg.arg%> <% } %>
+            </span>
+        <% } else { %>
+            <span class="command-arg">
+                <%=arg.argument%>
+            </span>
+        <% } %>
+    <% }); %>
+    </script>
+
+    <div id="output"></div>
+
+    <input type="text" size="100" id="input"/>
+
+    <script type="text/javascript">
+    //console.log('requireing main');
+    //require('./client');
+    var parser = require('./command_parser'),
+        $ = require('jquery-browserify'),
+        _ = require('underscore'),
+        render_cli = _.template($('#cli').text());
+
+    function parse(input) { 
+        return parser.parse(input)[0].command;
+    }
+
+    var last = null;
+
+    var $input = $('#input').keyup(function(e) { 
+        var v = $input.val();
+        if( last !== v ) {
+            last = v;
+            var command = parse($input.val());
+            console.dir(command);
+            $('#output').html( render_cli(command) );
+        }
+    }).focus();
+
+    </script>
+</body>
+</html>

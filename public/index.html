@@ -1,5 +1,33 @@
 <html>
 <head>
+    <style>
+        * {
+            font-family: monospace;
+            color: white;
+        }
+
+        body {
+            background: black;
+        }
+
+        #output span { margin-right: 1px; padding: 1px; }
+        span.command { background-color: blue; color: white; border-radius: 3px; font-weight: bold; }
+        span.command-option { background-color: green; color: white; border-radius: 3px; }
+        span.command-viewoption { background-color: purple; color: white; border-radius: 3px; }
+        span.command-arg {  background-color: grey; color: white; border-radius: 3px; }
+
+        table, td, th { text-align: left; border-collapse: collapse; border: 1px solid #333; }
+        th { color: #777; font-weight: normal; }
+        table { background: rgba(255, 255, 255, 0.05); }
+
+        div.command-output { 
+            background: #111;
+            border-radius: 10px;
+            padding: 5px;
+            margin: 10px;
+            box-shadow: 0px 0px 4px #444;
+        }
+    </style>
 </head>
 <body>
     <script src="/dnode.js"></script>
@@ -12,6 +40,12 @@
         socket.emit('my other event', { my: 'data' });
       });
     */
+    </script>
+
+    <script type="text/html" id="command-output">
+    <div class="command-output">
+        <%=output%>
+    </div>
     </script>
 
     <script type="text/html" data-template-for="FileList" data-template-mode="default">
@@ -32,6 +66,21 @@
         </tbody>
     </table>
     </script>
+
+    <script type="text/html" id="cli">
+    <span class="command"><%=command%></span>
+    <% _.each(args, function(arg) { %>
+        <% if( arg.option ) { %>
+            <span class="command-option"><%=arg.short?'-':'--'%><%=arg.option%><% if( arg.arg ) { %>=<%=arg.arg%><% } %></span>
+        <% } else if( arg.viewoption ) { %>
+            <span class="command-viewoption"><%=arg.short?'+':'++'%><%=arg.viewoption%><% if( arg.arg ) { %>=<%=arg.arg%><% } %></span>
+        <% } else { %>
+            <span class="command-arg"><%=arg.argument%></span>
+        <% } %>
+    <% }); %>
+    </script>
+
+    <input type="text" size="100" id="input"/>
 
     <div id="output"></div>
 

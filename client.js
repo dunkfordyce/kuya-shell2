@@ -40,13 +40,16 @@ DNode.connect(function (in_remote) {
 
 function parse(input) { 
     var command = parser.parse(input)[0].command;
-    var new_args = [], new_opts = {};
+    var new_args = [], new_opts = {}, view_opts = {};
     _.each(command.args, function(arg) { 
         if( arg.option ) { new_opts[arg.option] = arg.arg || true; }
+        else if( arg.viewoption ) { view_opts[arg.viewoption] = arg.arg || true; }
         else { new_args.push(arg.argument); }
     });
     command.args = new_args;
     command.options = new_opts;
+    command.view_options = view_opts;
+    console.log('parsed', input, command);
     return command;
 }
 
@@ -72,11 +75,24 @@ var Renderers = {
 
 var FileList = {
     $deflate: {
-        id: 'FileList'
+        id: 'FileList'/*,
+        inflate: function(obj, ctx) { 
+            var o = O.default_inflate(obj, ctx);
+    
+            return o;
+        }
+    */
     },
     renderers: Renderers.create(),
-    render: function(mode) { 
-        return this.renderers.get(mode || 'default').call(this);
+    render: function(view_opts) { 
+        if( !this.sorted && view_opts.d ) { 
+            this.files.sort(function(a, b) { 
+                if     ( a.filename > b.filename ) return 1;
+                else if( a.filename < b.filename ) return -1;
+                return 0;
+            });
+        }
+        return this.renderers.get(view_opts.mode || 'default').call(this);
     }
 };
 O.default_registry.add(FileList);
@@ -103,15 +119,19 @@ var Command = {
         });
     },
 
+
     execute: function() { 
         var self = this,
             p = $.Deferred().done(function(r) { self.result.resolve(O.inflate(r)); });
+        console.log('execute', this.data);
         ctx.execute(this.data, p.resolve);
         return this.result;
     }
 };
 
 var $target = $('#output');
+
+var render_command_wrapper = _.template( $('#command-output').text() );
 
 function execute(input, cb) { 
     var command = Command.create(parse(input));
@@ -120,7 +140,11 @@ function execute(input, cb) {
     command.execute().always(function(r) {
         console.log(r);
         if( r ) { 
-            $target.append(r.render());
+            $target.append(
+                render_command_wrapper({
+                    output: r.render(command.data.view_options)
+                })
+            );
         }
     });
     console.log('done execute');
@@ -129,3 +153,17 @@ function execute(input, cb) {
 window.p = parse;
 window.e = execute;
 
+var render_cli = _.template($('#cli').text());
+
+var last = null;
+
+var $input = $('#input').keyup(function(e) { 
+    console.log(e.which);
+    var v = $input.val();
+    if( last !== v ) {
+        last = v;
+        var command = parse($input.val());
+        console.dir(command);
+        $('#output').html( render_cli(command) );
+    }
+}).focus();
