@@ -78,6 +78,14 @@ exports.ls = function() {
     });
 };
 
+exports.ls.meta = {
+    description: 'list files',
+    args: '*',
+    options: { 
+        recursive: { type: 'bool' }
+    }
+};
+
 /*
 exports.ls.description = "list a directory";
 exports.ls.default_datatype = 'filelist';
@@ -86,6 +94,5 @@ exports.ls.args = [
     {type: ['path', 'pattern'], min: 0, max: null}
 ];
 */
-
 
 

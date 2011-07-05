@@ -66,8 +66,9 @@ function context_interface(context) {
             });
             context.env.unset_changed();
         },
-        init_remote: function(other_side) { 
+        init_remote: function(other_side, cb) { 
             other = other_side;
+            cb();
         }
     };
 }

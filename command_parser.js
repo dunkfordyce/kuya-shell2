@@ -466,7 +466,6 @@ module.exports = (function(){
         }
         var result0 = result1 !== null
           ? (function(command, args) {
-                  console.log(arguments, this);
                   return {type: 'js', command: command, args: args}; 
               })(result1[1], result1[3])
           : null;

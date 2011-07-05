@@ -47,7 +47,6 @@ shellarg "shellarg"
 jscommand "jscommand"
     = _ command:command_name command_end args:arguments? 
     {
-        console.log(arguments, this);
         return {type: 'js', command: command, args: args}; 
     }
 

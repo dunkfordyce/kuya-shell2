@@ -19,7 +19,6 @@ var RemoteContext = O.spawn(eventemitter.EventEmitter2.prototype, {
 DNode.connect(function (in_remote) {
     remote = window.remote = in_remote;
 
-    ready.resolve();
 
     remote.context.create(function(in_ctx) {
         ctx = window.ctx = RemoteContext.create(in_ctx);
@@ -34,22 +33,25 @@ DNode.connect(function (in_remote) {
                 console.log('emit', ev, args, arguments);
                 ctx.emit(ev, args);
             }
-        });
+        }, ready.resolve);
     });
 });
 
-function parse(input) { 
-    var command = parser.parse(input)[0].command;
+function parse(input, command) { 
+    command = command || Command.create();
+    var pcmd = parser.parse(input)[0].command;
     var new_args = [], new_opts = {}, view_opts = {};
-    _.each(command.args, function(arg) { 
+    command.data.command = pcmd.command;
+    command.orig_args = pcmd.args || [];
+    _.each(pcmd.args, function(arg) { 
         if( arg.option ) { new_opts[arg.option] = arg.arg || true; }
         else if( arg.viewoption ) { view_opts[arg.viewoption] = arg.arg || true; }
         else { new_args.push(arg.argument); }
     });
-    command.args = new_args;
-    command.options = new_opts;
+    command.data.args = new_args;
+    command.data.options = new_opts;
     command.view_options = view_opts;
-    console.log('parsed', input, command);
+    command.meta = ctx.commands[command.data.command];
     return command;
 }
 
@@ -83,6 +85,14 @@ var FileList = {
         }
     */
     },
+    options_meta: {
+        sort: {
+            type: {choice: ['ctime', 'mtime', 'size', 'name']}
+        },
+        "sort-reverse": { 
+            type: 'bool' 
+        }
+    },
     renderers: Renderers.create(),
     render: function(view_opts) { 
         if( !this.sorted && view_opts.d ) { 
@@ -104,7 +114,7 @@ $('script[type=text/html][data-template-for]').each(function() {
         cls = O.default_registry.get(cls_name),
         mode = $script.data('template-mode'),
         template = _.template($script.text());   
-    console.log($script, cls_name, cls, mode, template);
+    //console.log($script, cls_name, cls, mode, template);
     cls.renderers.add(mode, function() { return template(this); });
 });
 
@@ -112,13 +122,12 @@ $('script[type=text/html][data-template-for]').each(function() {
 var Command = {
     create: function(data) { 
         return O.spawn(this, {
-            data: _.extend(data, {
+            data: _.extend(data || {}, {
                 id: _.uniqueId()
             }),
             result: $.Deferred()
         });
     },
-
 
     execute: function() { 
         var self = this,
@@ -133,18 +142,16 @@ var $target = $('#output');
 
 var render_command_wrapper = _.template( $('#command-output').text() );
 
-function execute(input, cb) { 
-    var command = Command.create(parse(input));
+var next_command = null;
+
+function execute(command) { 
     console.dir(command);
     window.c = command;
+    var $command = $(render_command_wrapper({command: command})).appendTo($target);
     command.execute().always(function(r) {
         console.log(r);
         if( r ) { 
-            $target.append(
-                render_command_wrapper({
-                    output: r.render(command.data.view_options)
-                })
-            );
+            $command.find('.command-output').html( r.render(command.view_options) );
         }
     });
     console.log('done execute');
@@ -153,17 +160,34 @@ function execute(input, cb) {
 window.p = parse;
 window.e = execute;
 
-var render_cli = _.template($('#cli').text());
+var render_cli = window.render_cli = _.template($('#cli-template').text());
 
 var last = null;
 
+ready.then(function() { 
+    $('#cli-target').fakeinput({
+        parse: function(v) { 
+            next_command = parse(v, next_command);
+            return render_cli(next_command);
+        }
+    }).click();
+});
+
+/*
 var $input = $('#input').keyup(function(e) { 
-    console.log(e.which);
     var v = $input.val();
-    if( last !== v ) {
-        last = v;
-        var command = parse($input.val());
-        console.dir(command);
-        $('#output').html( render_cli(command) );
+    if( e.which == 13 ) { 
+        execute(next_command);
+        next_command = null;
+        $input.val('');
+    } else {
+        if( last !== v ) {
+            last = v;
+            next_command = parse($input.val(), next_command);
+            console.dir(next_command);
+            $('#cli').html( render_cli(next_command) );
+        }
+        console.log($input[0].selectionStart);
     }
 }).focus();
+*/
