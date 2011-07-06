@@ -1,4 +1,5 @@
-var fs = require('fs'),
+var O = require('kuya-O'),
+    fs = require('fs'),
     path = require('path'),
     _ = require('underscore'),
     defer = require('../deferred'),
@@ -42,6 +43,12 @@ function stat(f) {
     return p;
 }
 
+var FileList = {
+    $deflate: {
+        id: "FileList"
+    }
+};
+
 exports.ls = function() { 
     var self = this,
         ret = [],
@@ -51,10 +58,8 @@ exports.ls = function() {
     _.each(arguments.length ? arguments : ['*'], function(p) { 
         if( is_pattern(p) ) { 
             ps.push( expand(p).then(function(files) { 
-                console.log('files', files);
                 files.forEach(function(f) { 
                     ps2.push( stat(f).then(function(s) { 
-                        console.log('stat', s);
                         ret.push(s);
                     }));
                 });
@@ -68,12 +73,17 @@ exports.ls = function() {
 
     defer.when.apply(null, ps).then(function() { 
         defer.when.apply(null, ps2).then(function() { 
-            self.result.resolve({
-                datatype: 'filelist',
-                data: ret
-            });
+            self.result.resolve(O.spawn(FileList, {files: ret}));
         });
     });
+};
+
+exports.ls.meta = {
+    description: 'list files',
+    args: '*',
+    options: { 
+        recursive: { type: 'bool' }
+    }
 };
 
 /*
@@ -84,6 +94,5 @@ exports.ls.args = [
     {type: ['path', 'pattern'], min: 0, max: null}
 ];
 */
-
 
 
