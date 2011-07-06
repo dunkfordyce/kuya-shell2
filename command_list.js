@@ -46,6 +46,7 @@ var CommandList = {
     get: function(name) { 
         var cmd = this.commands[name] || this.default;
         if( !cmd ) { 
+            console.log('didnt find', name, this.commands);
             throw new CommandNotFound(name); 
         }
         return cmd;

@@ -165,12 +165,24 @@ var render_cli = window.render_cli = _.template($('#cli-template').text());
 var last = null;
 
 ready.then(function() { 
+
     $('#cli-target').fakeinput({
         parse: function(v) { 
+            console.log('parse', v);
+            if( v.length == 1 ) { return v; }               
             next_command = parse(v, next_command);
             return render_cli(next_command);
         }
     }).click();
+    var $input = $('#cli-target').fakeinput('input').keyup(function(e) { 
+        if( e.which == 13 ) { 
+            var v = $input.val().replace('\uFEFF', '');
+            next_command = parse(v, next_command);
+            execute(next_command);
+            next_command = null;
+            $input.val('').change();
+        }
+    });
 });
 
 /*

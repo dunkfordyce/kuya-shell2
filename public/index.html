@@ -14,7 +14,7 @@
             background: -moz-linear-gradient(top, #7d7e7d 0%, #0e0e0e 100%)
         }
 
-        #cli span { padding: 0 3px; }
+        span.command-line span { padding: 0 3px; }
         span.command { background-color: blue; color: white; border-radius: 3px; font-weight: bold; }
         span.command-option { background-color: green; color: white; border-radius: 3px; }
         span.command-viewoption { background-color: purple; color: white; border-radius: 3px; }
@@ -113,8 +113,14 @@
         </tbody>
     </table>
     </script>
+    <script type="text/html" data-template-for="FileList" data-template-mode="messy">
+    <% _.each(files, function(f) { %>
+        <span class="filelist-item"><%=f.filename%></span>
+    <%_ }); %>
+    </script>
 
     <script type="text/html" id="cli-template">
+    <span class="command-line">
     <span class="command"><%=data.command%></span>
     <% _.each(orig_args, function(arg) { %>
         <% if( arg.option ) { %>
@@ -125,9 +131,7 @@
             <span class="command-arg"><%=arg.argument%></span>
         <% } %>
     <% }); %>
-    <% if( meta ) { %>
-    <div class="command-desc"><%=meta.description || 'no description'%></div>
-    <% } %>
+    </span>
     </script>
 
     <!--input type="text" size="100" id="input"/-->

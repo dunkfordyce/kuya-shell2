@@ -24,6 +24,9 @@ FakeInput.prototype.init = function() {
     var p = this.$output.position();
     console.log(p);
     this.$cursor = this.$el.find('#cli-cursor');
+
+    var refresh = this.refresh.bind(this);
+
     this.$input = ($('<input type="text"/>')
         .appendTo(this.$wrapper)
         .css({
@@ -35,7 +38,8 @@ FakeInput.prototype.init = function() {
             top: p.top,
             opacity: 0
         })
-        .keyup(this.refresh.bind(this))
+        .keyup(refresh)
+        .focus(refresh)
     );
 };
 FakeInput.prototype.render = function() { 
@@ -62,6 +66,9 @@ FakeInput.prototype.refresh = function(e) {
             });
         }
     }
+};
+FakeInput.prototype.input = function() { 
+    return this.$input;
 };
 FakeInput.prototype.end = function() { 
     return this.$el;

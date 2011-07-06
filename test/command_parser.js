@@ -30,7 +30,7 @@ vows.describe('command_parser')
         'shell': test('!foo'),
         'shell more args': test('!foo zxy abc "ef gh"'),
         'env override': test('envvar=123 foo arg'),
-        'env override more': test('envvar=123 env2="a b c" foo arg'),
+        'env override more': test('envvar=123 env2="a b c" foo arg')
     })
     .export(module)
 ;

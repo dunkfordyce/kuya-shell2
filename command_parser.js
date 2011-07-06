@@ -765,12 +765,25 @@ module.exports = (function(){
         if (result2 !== null) {
           var result3 = parse_String();
           if (result3 !== null) {
-            var result6 = parse_option_arg();
-            var result4 = result6 !== null ? result6 : '';
+            if (input.substr(pos, 1) === "=") {
+              var result4 = "=";
+              pos += 1;
+            } else {
+              var result4 = null;
+              if (reportMatchFailures) {
+                matchFailed("\"=\"");
+              }
+            }
             if (result4 !== null) {
-              var result5 = parse__();
+              var result5 = parse_unqoted_string();
               if (result5 !== null) {
-                var result1 = [result2, result3, result4, result5];
+                var result6 = parse__();
+                if (result6 !== null) {
+                  var result1 = [result2, result3, result4, result5, result6];
+                } else {
+                  var result1 = null;
+                  pos = savedPos0;
+                }
               } else {
                 var result1 = null;
                 pos = savedPos0;
@@ -794,7 +807,7 @@ module.exports = (function(){
                       r.arg = optionarg;
                   }
                   return r;
-              })(result1[0], result1[1], result1[2])
+              })(result1[0], result1[1], result1[3])
           : null;
         
         
@@ -815,30 +828,9 @@ module.exports = (function(){
         }
         
         
-        var savedPos0 = pos;
-        if (input.substr(pos, 1) === "=") {
-          var result2 = "=";
-          pos += 1;
-        } else {
-          var result2 = null;
-          if (reportMatchFailures) {
-            matchFailed("\"=\"");
-          }
-        }
-        if (result2 !== null) {
-          var result3 = parse_String();
-          if (result3 !== null) {
-            var result1 = [result2, result3];
-          } else {
-            var result1 = null;
-            pos = savedPos0;
-          }
-        } else {
-          var result1 = null;
-          pos = savedPos0;
-        }
+        var result1 = parse_String();
         var result0 = result1 !== null
-          ? (function(arg) { return arg; })(result1[1])
+          ? (function(arg) { return arg; })(result1)
           : null;
         
         

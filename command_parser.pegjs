@@ -73,7 +73,7 @@ option
     }
 
 viewoption
-    = length:("++" / "+") option:(String) optionarg:option_arg? _
+    = length:("++" / "+") option:(String) "=" optionarg:unqoted_string _
     { 
         var r = {viewoption: option, short: length=='+'};
         if( optionarg ) { 
@@ -83,7 +83,7 @@ viewoption
     }
 
 option_arg
-    = "=" arg:String { return arg; }
+    = arg:String { return arg; }
 
 argument
     = !"-" argument:String  _
