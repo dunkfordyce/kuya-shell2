@@ -40,6 +40,7 @@ FakeInput.prototype.init = function() {
         })
         .keyup(refresh)
         .focus(refresh)
+        .change(refresh)
     );
 };
 FakeInput.prototype.render = function() { 

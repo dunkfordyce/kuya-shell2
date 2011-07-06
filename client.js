@@ -1,5 +1,5 @@
 var O = require('kuya-O'),
-    parser = require('./command_parser'),
+    parser = require('./command_parser99'),
     $ = require('jquery-browserify'),
     eventemitter = require('eventemitter2'),
     _ = window._ = require('underscore');
@@ -37,21 +37,51 @@ DNode.connect(function (in_remote) {
     });
 });
 
+
+
+var CURSOR = '\uFEFF';
+
+function contains_cursor(s) { return s.indexOf(CURSOR) !== -1; }
+
 function parse(input, command) { 
     command = command || Command.create();
-    var pcmd = parser.parse(input)[0].command;
-    var new_args = [], new_opts = {}, view_opts = {};
+    var pcmd = parser.parse(input)[0];
+    var new_args = [], new_opts = {}, view_opts = {}, cursor = false;
     command.data.command = pcmd.command;
+    if( contains_cursor(pcmd.command) ) {
+        cursor = {inside: 'command'};
+    }
     command.orig_args = pcmd.args || [];
-    _.each(pcmd.args, function(arg) { 
-        if( arg.option ) { new_opts[arg.option] = arg.arg || true; }
-        else if( arg.viewoption ) { view_opts[arg.viewoption] = arg.arg || true; }
-        else { new_args.push(arg.argument); }
+    _.each(pcmd.args, function(arg, idx) { 
+        console.log(arg, idx);
+        if( arg.option ) { 
+            if( !cursor ) { 
+                if( contains_cursor(arg.option) ) { 
+                    cursor = {inside: 'option', idx: idx}; 
+                } else if( typeof arg.arg == 'string' && contains_cursor(arg.arg) ) { 
+                    cursor = {inside: 'optionarg', idx: idx};
+                }
+            }
+            if( arg.prefix[0] == '-' ) { 
+                new_opts[arg.option] = arg.arg || true; 
+            } else { 
+                view_opts[arg.option] = arg.arg || true; 
+            }
+        } else {
+            if( !cursor && contains_cursor(arg.arg) ) { 
+                cursor = {inside: 'arg', idx: idx};
+            }
+            new_args.push(arg.arg); 
+        }
     });
     command.data.args = new_args;
     command.data.options = new_opts;
     command.view_options = view_opts;
     command.meta = ctx.commands[command.data.command];
+    if( !command.cursor || cursor.inside != command.cursor.inside || cursor.inside.arg !== cursor.arg ) { 
+        command.cursor = cursor;
+        console.log('cursor now in', cursor);
+    }
     return command;
 }
 
@@ -203,3 +233,12 @@ var $input = $('#input').keyup(function(e) {
     }
 }).focus();
 */
+
+var hints = (function() { 
+    var $el = $('#hint-wrapper'),
+        exports = {};
+
+    
+
+    return exports;
+})();

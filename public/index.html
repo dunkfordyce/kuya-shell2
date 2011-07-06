@@ -56,13 +56,26 @@
         }
         #cli-cursor {
             position: absolute;
-            border: 1px solid blue;
-            background: rgba(0, 0, 200, 0.9);
+            background: #000;
             height: 20px;
-            width: 1px;
+            width: 2px;
             margin: 0;
             padding: 0;
+            -moz-animation-iteration-count: infinite;
+            -moz-animation-duration: 0.75s;
+            -moz-animation-name: slidein;
         }
+
+        @-moz-keyframes slidein {
+            to {
+                opacity: 0.7;
+            }
+
+            from {
+                opacity: 0;
+            }
+        }
+
         #cursor-start { 
             width: 0;
             height: 0;
@@ -81,6 +94,31 @@
             margin: 0px 0px 5px 0px;
             overflow: auto;
             background: -moz-linear-gradient(top, #eeeeee 0%, #eeeeee 100%);
+        }
+
+        #hint-wrapper { 
+            z-index: 10;
+            position: absolute;
+            bottom: 35px;
+            left: 10px;
+            right: 10px;
+            height: 100px;
+            background: -moz-linear-gradient(top, #a7cfdf 0%, #23538a 100%);
+            border-radius: 10px;
+            box-shadow: 0px 0px 4px rgba(255, 255, 255, 0.2);
+            border: 1px solid #777;
+            padding: 5px;
+            opacity: 0.8;
+        }
+        #hint-arrow { 
+          border-color: #23538a transparent transparent transparent;
+          border-style: solid;
+          border-width: 10px;
+          height:0;
+          width:0;
+          position:absolute;
+          bottom:-19px;
+          left:10px;
         }
     </style>
 </head>
@@ -124,17 +162,18 @@
     <span class="command"><%=data.command%></span>
     <% _.each(orig_args, function(arg) { %>
         <% if( arg.option ) { %>
-            <span class="command-option"><%=arg.short?'-':'--'%><%=arg.option%><% if( arg.arg ) { %>=<%=arg.arg%><% } %></span>
-        <% } else if( arg.viewoption ) { %>
-            <span class="command-viewoption"><%=arg.short?'+':'++'%><%=arg.viewoption%><% if( arg.arg ) { %>=<%=arg.arg%><% } %></span>
-        <% } else { %>
-            <span class="command-arg"><%=arg.argument%></span>
+            <% if( arg.prefix[0] == '-' ) { %>
+                <span class="command-option"><%=arg.prefix%><%=arg.option%><% if( arg.arg ) { %>=<%=arg.arg%><% } %></span>
+            <% } else { %>
+                <span class="command-viewoption"><%=arg.prefix%><%=arg.option%><% if( arg.arg ) { %>=<%=arg.arg%><% } %></span>
+            <% } %>
+        <% } else if( arg.arg.length ) { %>
+            <span class="command-arg"><%=arg.arg%></span>
         <% } %>
     <% }); %>
     </span>
     </script>
 
-    <!--input type="text" size="100" id="input"/-->
     <script type="text/html" id="template-fakeinput">
     <div id="cli-wrapper">
         <div id="cli"></div>
@@ -145,6 +184,11 @@
     <div id="output"></div>
 
     <div id="cli-target"></div>
+
+    <div id="hint-wrapper" style="display: none">
+        <div id="hint">I am info about foocommand</div>
+        <div id="hint-arrow"></div>
+    </div>
 
     <script src="/dnode.js"></script>
     <script type="text/javascript" src="/browserify.js"></script>

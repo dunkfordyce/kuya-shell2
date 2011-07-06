@@ -1,6 +1,3 @@
-
-var EOL = 1;
-
 function parse(str) { 
 
     var ctx = {
