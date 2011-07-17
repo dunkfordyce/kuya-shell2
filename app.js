@@ -58,7 +58,9 @@ function context_interface(context) {
         execute: function(command, cb) { 
             console.log('execute', command);
             context.execute_command(command).always(function(r) { 
-                cb(O.deflate(r));
+                var d = O.deflate(r);
+                console.log('returning', d);
+                cb(d);
                 if( context.env.is_changed() ) { 
                     console.log('sending', context.env.changed());
                     other.emit('env/changed', context.env.changed());

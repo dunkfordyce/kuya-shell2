@@ -56,6 +56,9 @@ exports.ls = function() {
         ps2 = [];
 
     _.each(arguments.length ? arguments : ['*'], function(p) { 
+        if( p[0] !== '/' ) { 
+            p = path.join(self.context.env.get('cwd'), p);
+        }
         if( is_pattern(p) ) { 
             ps.push( expand(p).then(function(files) { 
                 files.forEach(function(f) { 

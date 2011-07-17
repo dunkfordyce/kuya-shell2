@@ -4,6 +4,7 @@
         * {
             font-family: sans-serif;
             color: white;
+            font-size: 11px;
         }
 
         body, input {
@@ -28,7 +29,7 @@
             background: #111;
             border-radius: 10px;
             padding: 5px;
-            margin: 10px;
+            margin: 4px 10px;
             box-shadow: 0px 0px 4px #444;
         }
 
@@ -40,7 +41,7 @@
             border: 1px solid #aaa;
             border-radius: 5px 5px 0px 0px;
             padding: 5px;
-            height: 20px;
+            height: 13px;
             background: -moz-linear-gradient(top, #606c88 0%, #3f4c6b 100%);
         }
         #cli-wrapper { 
@@ -57,7 +58,7 @@
         #cli-cursor {
             position: absolute;
             background: #000;
-            height: 20px;
+            height: 15px;
             width: 2px;
             margin: 0;
             padding: 0;
@@ -76,6 +77,29 @@
             }
         }
 
+        #cli-prefix { 
+            display: inline-block;
+            /*background: red;*/
+            color: #DDD;
+            position: absolute; 
+            left: 0; 
+            width: 100px;
+        }
+        #cli-suffix { 
+            display: inline-block;
+            position: absolute;
+            /*background: green;*/
+            width: 100px;
+            right: 0;
+        }
+        #cli-body { 
+            display: inline-block;
+            /*background: blue;*/
+            position:absolute;
+            left: 100px;
+            right: 100px;
+        }
+
         #cursor-start { 
             width: 0;
             height: 0;
@@ -87,7 +111,7 @@
             position: absolute;
             left: -1px;
             top: 0;
-            bottom: 29px;
+            bottom: 22px;
             right: -1px;
             border-radius: 0 0 10px 10px;
             padding: 5px;
@@ -144,7 +168,7 @@
         <tbody>
         <% _.each(files, function(f) { %>
             <tr>
-                <td><%=f.filename%></td>
+                <td><%=f.filename.indexOf(ctx.env.cwd) == 0 ? f.filename.substring(ctx.env.cwd.length+1) : f.filename%></td>
                 <td><%=f.size%></td>
             </tr>
         <% }); %>
@@ -176,9 +200,21 @@
 
     <script type="text/html" id="template-fakeinput">
     <div id="cli-wrapper">
-        <div id="cli"></div>
-        <div id="cli-cursor"></div>
+        <div id="cli">
+            <div id="cli-prefix"></div>
+            <div id="cli-body">&nbsp;</div>
+            <div id="cli-suffix"></div>
+            <div id="cli-cursor"></div>
+        </div>
     </div>
+    </script>
+
+    <script type="text/html" id="template-hints-command">
+    <ul>
+    <% _.each(matching, function(m) { %>
+        <li><%=m.name%> - <%=m.meta.description%></li>
+    <% }); %>
+    </ul>
     </script>
 
     <div id="output"></div>

@@ -27,6 +27,9 @@ DNode.connect(function (in_remote) {
                 console.log('emit', ev, args, arguments);
                 exports.current.emit(ev, args);
             }
-        }, exports.current_ready.resolve);
+        }, function() { 
+            exports.current_ready.resolve();
+            exports.current.emit('env/changed', exports.current.env);
+        });
     });
 });

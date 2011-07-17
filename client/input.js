@@ -23,7 +23,10 @@ FakeInput.prototype.init = function() {
             self.$input.focus();
         })
     );
-    this.$output = this.$el.find('#cli');
+    this.$main  = this.$el.find('#cli');
+    this.$output = this.$el.find('#cli-body');
+    this.$prefix = this.$el.find('#cli-prefix');
+    this.$suffix = this.$el.find('#cli-suffix');
     this.$wrapper = this.$el.find('#cli-wrapper');
     var p = this.$output.position();
     console.log(p);
@@ -32,7 +35,7 @@ FakeInput.prototype.init = function() {
     var refresh = this.refresh.bind(this);
 
     this.$input = ($('<input type="text"/>')
-        .appendTo(this.$wrapper)
+        .appendTo(this.$main)
         .css({
             zIndex: 0, 
             width: 2, 
@@ -72,10 +75,11 @@ FakeInput.prototype.refresh = function(e) {
     }
     if( this.input.selectionStart !== this._selectionStart ) { 
         this._selectionStart = this.input.selectionStart;
-        var p = $('#cursor-start').position();
+        var p = $('#cursor-start').position(),
+            p2 = this.$output.position();
         if( p ) { 
             this.$cursor.css({
-                left: p.left
+                left: p.left + p2.left
             });
         }
     }
@@ -98,8 +102,8 @@ FakeInput.prototype.val_with_cursor = function() {
     return v.substring(0, s) + this.options.cursor + v.substring(s);
 };
 FakeInput.prototype.contains_cursor = function(s) { return s.indexOf(this.options.cursor) !== -1; }
-FakeInput.prototype.end = function() { 
-    return this.$el;
+FakeInput.prototype.prefix = function() { 
+    return this.$prefix;
 };
 
 $.fn.fakeinput = function(opts_or_command) { 
