@@ -6,12 +6,14 @@ var O = require('kuya-O'),
     Context = require('./context').Context,
     app = express.createServer();
 
+/*
 if( fs.statSync('./command_parser.pegjs').mtime > fs.statSync('./command_parser.js').mtime ) { 
     console.log('compiling command parser...');
     var parser = require('pegjs').buildParser(fs.readFileSync('./command_parser.pegjs').toString());
     fs.writeFileSync('./command_parser.js', "module.exports = "+parser.toSource() +";\n");
     console.log('done compiling');
 }
+*/
 
 app.use(express.static(__dirname+'/public'));
 
@@ -55,6 +57,10 @@ function context_interface(context) {
         id: context.id,
         env: context.env.data,
         commands: context.commands.get_all_meta(),
+        init_remote: function(other_side, cb) { 
+            other = other_side;
+            cb();
+        },
         execute: function(command, cb) { 
             console.log('execute', command);
             context.execute_command(command).always(function(r) { 
@@ -67,10 +73,6 @@ function context_interface(context) {
                 }
             });
             context.env.unset_changed();
-        },
-        init_remote: function(other_side, cb) { 
-            other = other_side;
-            cb();
         }
     };
 }

@@ -88,9 +88,10 @@ function update_command(v, cmd) {
         new_opts = {}, 
         view_opts = {}, 
         cursor = false,
+        CURSOR = this.options.cursor,
         contains_cursor = this.contains_cursor.bind(this);
 
-    cmd.data.command = pcmd.command;
+    cmd.data.command = pcmd.command.replace(CURSOR, '');
     if( contains_cursor(pcmd.command) ) {
         cursor = {inside: 'command'};
     }
@@ -107,15 +108,15 @@ function update_command(v, cmd) {
                 }
             }
             if( arg.prefix[0] == '-' ) { 
-                new_opts[arg.option] = arg.arg || true; 
+                new_opts[arg.option.replace(CURSOR, '')] = arg.arg || true; 
             } else { 
-                view_opts[arg.option] = arg.arg || true; 
+                view_opts[arg.option.replace(CURSOR, '')] = arg.arg || true; 
             }
         } else {
             if( !cursor && contains_cursor(arg.arg) ) { 
                 cursor = {inside: 'arg', idx: idx};
             }
-            new_args.push(arg.arg); 
+            new_args.push(arg.arg.replace(CURSOR, '')); 
         }
     });
     cmd.data.args = new_args;
@@ -158,13 +159,31 @@ context.current_ready.then(function() {
     });
 });
 
+function match_path(prefix) { 
+    console.log('calling ls command for match_path', prefix);
+    var p = $.Deferred(),
+        cmd = Command.create({
+            command: 'ls',
+            args: [prefix+'*']
+        });
+    cmd.execute().then(function(r) { 
+        console.log('done match_path', prefix, r); 
+        var files = r.files;
+        files.sort(function(a, b) { 
+            return (a.filename.length - b.filename.length);
+        });
+        p.resolve(files);
+    });
+    return p;
+}
+
+
 var hints = (function() { 
     var $wrapper = $('#hint-wrapper'),
         $el = $('#hint'),
         interf = {},
-        template_command = _.template( $('#template-hints-command').text() );
-
-    return;
+        template_command = _.template( $('#template-hints-command').text() ),
+        template_path = _.template( $('#template-hints-path').text() );
 
     function match_commands(cmd) { 
         var matching = [];
@@ -183,8 +202,25 @@ var hints = (function() {
         return matching;
     }
 
+
+    function do_first(cmd) { 
+        if( cmd.data.command.indexOf('/') !== -1 ) { 
+            do_path(cmd);
+        } else {
+            do_command(cmd);
+        }
+    }
+
+    function do_path(cmd) { 
+        console.log('do path', cmd.data.command);
+        match_path(cmd.data.command).then(function(files) { 
+            console.log('do_path', files);
+            $el.html(template_path({files: files}));
+        });
+    }
+
     function do_command(cmd) { 
-        $el.html(template_command({matching: match_commands(cmd.data.command.replace('\uFEFF', ''))}));
+        $el.html(template_command({matching: match_commands(cmd.data.command)}));
     }
 
     function do_option(cmd) {
@@ -201,7 +237,7 @@ var hints = (function() {
         console.log('hints, cursor inside', cmd);
         switch( cmd.cursor.inside ) { 
             case "command": 
-                do_command(cmd);           
+                do_first(cmd);           
                 break;
             case "option":
                 do_option(cmd);
