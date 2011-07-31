@@ -78,6 +78,31 @@ function execute(command) {
     });
 }
 
+function parse_command(v, cursor) { 
+    var pcmd = parser.parse(v)[0],
+        data = {
+            command: pcmd.command,
+            args: [],
+            options: {},
+            view_options: {},
+            all_args: []
+        };
+
+    _.each(pcmd.args, function(arg, idx) { 
+        if( arg.option ) { 
+            if( arg.prefix.replace(cursor, '')[0] == '-' ) { 
+                data.options[arg.option] = arg.arg || true; 
+            } else { 
+                data.view_options[arg.option] = arg.arg || true; 
+            }
+        } else {
+            data.args.push(arg.arg); 
+        }
+        all_args.push(arg);
+    });
+}
+
+
 function update_command(v, cmd) { 
     cmd = cmd || Command.create();
 

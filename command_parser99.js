@@ -19,7 +19,7 @@ function parse(str) {
         };
         commands.push(cmd);
         parse_whitespace(ctx);
-        var opt, arg;
+        var opt=null, view_opt=null, arg=null;
         while( ctx.always() && ((opt = parse_option(ctx)) || (opt = parse_view_option(ctx)) || (arg = parse_string(ctx))) ) { 
             if( opt ) { 
                 //console.log('option', opt);
@@ -29,7 +29,7 @@ function parse(str) {
                 cmd.args.push({arg: arg});
             }
             parse_whitespace(ctx);
-            opt = arg = false;
+            opt = view_opt = arg = null;
         };
 
         parse_whitespace(ctx);
@@ -60,7 +60,7 @@ function test_eoc(ctx) {
     return true;
 }
 
-var _whitespace = /[ \t]/;
+var _whitespace = /[ \t\uFEFF]/;
 function parse_whitespace(ctx) { 
     var ret = '';
     while( ctx.always() && _whitespace.test(ctx.str[ctx.p]) ) { 
@@ -108,14 +108,21 @@ function parse_quoted_string(ctx) {
     return ret;
 };
 
+function skip_cursor(ctx) { 
+    if( ctx.str[ctx.p] == CURSOR ) { 
+        ctx.p ++;
+    }
+}
 
-function make_option_parser(prefixer) { 
+function make_option_parser(prefixer, type) { 
     return function parse_option(ctx) { 
+        skip_cursor(ctx);
         if( ctx.str[ctx.p] != prefixer ) { 
             return false;
         }
         var prefix = ctx.str[ctx.p];
         ctx.p ++;
+        skip_cursor(ctx);
         if( ctx.str[ctx.p] == prefixer ) { 
             prefix += prefixer;
             ctx.p++;
@@ -126,9 +133,9 @@ function make_option_parser(prefixer) {
             ctx.p ++;
             argopt = parse_string(ctx);
         }
-        return {option: opt, arg: argopt, prefix: prefix};
+        return {option: opt, arg: argopt, prefix: prefix, type: type};
     };
 }
 
-var parse_option = make_option_parser('-');
-var parse_view_option = make_option_parser('+');
+var parse_option = make_option_parser('-', 'opt');
+var parse_view_option = make_option_parser('+', 'viewopt');
